@@ -257,7 +257,7 @@ class FasterWhisperPipeline(Pipeline):
         return language
 
 def load_model(name: str, device: str = None, compute_type: str = "float16", asr_options: dict = None, language: str = None):
-    """Load the whisper model
+    """Load the whisper model with fallback support
     Parameters
     ----------
     name : str
@@ -276,35 +276,61 @@ def load_model(name: str, device: str = None, compute_type: str = "float16", asr
     model
         Whisper model
     """
+    def try_load_model(device, compute_type):
+        try:
+            if name.endswith(".en"):
+                language = "en"
+
+            model = WhisperModel(name,
+                               device=device,
+                               compute_type=compute_type,
+                               download_root=None,
+                               cpu_threads=4)
+            return model, device, compute_type
+        except Exception as e:
+            print(f"Failed to load model on {device} with {compute_type}: {str(e)}")
+            return None, None, None
+
+    # Determine initial device and compute type
     if device is None:
         if torch.cuda.is_available():
             device = "cuda"
         elif torch.backends.mps.is_available():
             device = "mps"
-            # MPS requires float32
             if compute_type == "float16":
                 compute_type = "float32"
         else:
             device = "cpu"
-            # Use int8 on CPU to save memory
             if compute_type == "float16":
                 compute_type = "int8"
 
-    if name.endswith(".en"):
-        language = "en"
+    # Try loading with specified device
+    model, final_device, final_compute_type = try_load_model(device, compute_type)
 
-    model = WhisperModel(name,
-                         device=device,
-                         compute_type=compute_type,
-                         download_root=None,
-                         cpu_threads=4)
+    # Fallback logic
+    if model is None:
+        print(f"Falling back to alternative device...")
+        if device == "mps":
+            # Try CPU as fallback for MPS
+            device = "cpu"
+            compute_type = "int8"
+            model, final_device, final_compute_type = try_load_model(device, compute_type)
+        elif device == "cuda":
+            # Try CPU as fallback for CUDA
+            device = "cpu"
+            compute_type = "int8"
+            model, final_device, final_compute_type = try_load_model(device, compute_type)
+
+    if model is None:
+        raise RuntimeError(f"Failed to load model on any available device")
+
     if language is not None:
         tokenizer = faster_whisper.tokenizer.Tokenizer(model.hf_tokenizer, model.model.is_multilingual, task="transcribe", language=language)
     else:
         print("No language specified, language will be first be detected for each audio file (increases inference time).")
         tokenizer = None
 
-    default_asr_options =  {
+    default_asr_options = {
         "beam_size": 5,
         "best_of": 5,
         "patience": 1,
@@ -316,43 +342,31 @@ def load_model(name: str, device: str = None, compute_type: str = "float16", asr
         "log_prob_threshold": -1.0,
         "no_speech_threshold": 0.6,
         "condition_on_previous_text": False,
-        "prompt_reset_on_temperature": 0.5,
         "initial_prompt": None,
         "prefix": None,
         "suppress_blank": True,
         "suppress_tokens": [-1],
-        "without_timestamps": True,
-        "max_initial_timestamp": 0.0,
-        "word_timestamps": False,
-        "prepend_punctuations": "\"'“¿([{-",
-        "append_punctuations": "\"'.。,，!！?？:：”)]}、",
+        "without_timestamps": False,
+        "max_initial_timestamp": 1.0,
+        "word_timestamps": True,
+        "prepend_punctuations": "\"'"¿([{-",
+        "append_punctuations": "\"'.。,，!！?？:：")]}、",
         "suppress_numerals": False,
-        "max_new_tokens": None,
-        "clip_timestamps": None,
-        "hallucination_silence_threshold": None,
     }
 
     if asr_options is not None:
         default_asr_options.update(asr_options)
-
-    suppress_numerals = default_asr_options["suppress_numerals"]
-    del default_asr_options["suppress_numerals"]
-
-    default_asr_options = faster_whisper.transcribe.TranscriptionOptions(**default_asr_options)
 
     default_vad_options = {
         "vad_onset": 0.500,
         "vad_offset": 0.363
     }
 
-    vad_model = load_vad_model(torch.device(device), use_auth_token=None, **default_vad_options)
+    vad_model = load_vad_model(torch.device(final_device), use_auth_token=None, **default_vad_options)
 
     return FasterWhisperPipeline(
         model=model,
         vad=vad_model,
         options=default_asr_options,
-        tokenizer=tokenizer,
-        language=language,
-        suppress_numerals=suppress_numerals,
-        vad_params=default_vad_options,
+        tokenizer=tokenizer
     )
