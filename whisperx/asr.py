@@ -256,43 +256,50 @@ class FasterWhisperPipeline(Pipeline):
         print(f"Detected language: {language} ({language_probability:.2f}) in first 30s of audio...")
         return language
 
-def load_model(whisper_arch,
-               device,
-               device_index=0,
-               compute_type="float16",
-               asr_options=None,
-               language : Optional[str] = None,
-               vad_model=None,
-               vad_options=None,
-               model : Optional[WhisperModel] = None,
-               task="transcribe",
-               download_root=None,
-               threads=4):
-    '''Load a Whisper model for inference.
-    Args:
-        whisper_arch: str - The name of the Whisper model to load.
-        device: str - The device to load the model on.
-        compute_type: str - The compute type to use for the model.
-        options: dict - A dictionary of options to use for the model.
-        language: str - The language of the model. (use English for now)
-        model: Optional[WhisperModel] - The WhisperModel instance to use.
-        download_root: Optional[str] - The root directory to download the model to.
-        threads: int - The number of cpu threads to use per worker, e.g. will be multiplied by num workers.
-    Returns:
-        A Whisper pipeline.
-    '''
+def load_model(name: str, device: str = None, compute_type: str = "float16", asr_options: dict = None, language: str = None):
+    """Load the whisper model
+    Parameters
+    ----------
+    name : str
+        Name of the model
+    device : str, optional
+        Device to load the model on, by default None
+    compute_type : str, optional
+        Type of compute to use, by default "float16"
+    asr_options : dict, optional
+        ASR options, by default None
+    language: str, optional
+        Language of the model, by default None
+        
+    Returns
+    -------
+    model
+        Whisper model
+    """
+    if device is None:
+        if torch.cuda.is_available():
+            device = "cuda"
+        elif torch.backends.mps.is_available():
+            device = "mps"
+            # MPS requires float32
+            if compute_type == "float16":
+                compute_type = "float32"
+        else:
+            device = "cpu"
+            # Use int8 on CPU to save memory
+            if compute_type == "float16":
+                compute_type = "int8"
 
-    if whisper_arch.endswith(".en"):
+    if name.endswith(".en"):
         language = "en"
 
-    model = model or WhisperModel(whisper_arch,
+    model = WhisperModel(name,
                          device=device,
-                         device_index=device_index,
                          compute_type=compute_type,
-                         download_root=download_root,
-                         cpu_threads=threads)
+                         download_root=None,
+                         cpu_threads=4)
     if language is not None:
-        tokenizer = faster_whisper.tokenizer.Tokenizer(model.hf_tokenizer, model.model.is_multilingual, task=task, language=language)
+        tokenizer = faster_whisper.tokenizer.Tokenizer(model.hf_tokenizer, model.model.is_multilingual, task="transcribe", language=language)
     else:
         print("No language specified, language will be first be detected for each audio file (increases inference time).")
         tokenizer = None
@@ -338,13 +345,7 @@ def load_model(whisper_arch,
         "vad_offset": 0.363
     }
 
-    if vad_options is not None:
-        default_vad_options.update(vad_options)
-
-    if vad_model is not None:
-        vad_model = vad_model
-    else:
-        vad_model = load_vad_model(torch.device(device), use_auth_token=None, **default_vad_options)
+    vad_model = load_vad_model(torch.device(device), use_auth_token=None, **default_vad_options)
 
     return FasterWhisperPipeline(
         model=model,
