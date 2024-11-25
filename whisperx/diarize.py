@@ -1,22 +1,55 @@
+"""Speaker diarization for WhisperX."""
+
 import numpy as np
 import pandas as pd
-from pyannote.audio import Pipeline
-from typing import Optional, Union
+import os
 import torch
-
+from typing import Optional, Union
+from pyannote.audio import Pipeline
 from .audio import load_audio, SAMPLE_RATE
 
 
 class DiarizationPipeline:
     def __init__(
         self,
-        model_name="pyannote/speaker-diarization-3.1",
-        use_auth_token=None,
-        device: Optional[Union[str, torch.device]] = "cpu",
+        model_name: str = "pyannote/speaker-diarization-3.1",
+        use_auth_token: Optional[Union[str, bool]] = None,
+        device: Optional[str] = None
     ):
-        if isinstance(device, str):
-            device = torch.device(device)
-        self.model = Pipeline.from_pretrained(model_name, use_auth_token=use_auth_token).to(device)
+        """Initialize diarization pipeline."""
+        if device is None:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            
+        # Try to get token from environment
+        if use_auth_token is None:
+            use_auth_token = os.getenv("HF_TOKEN")
+            
+        if not use_auth_token:
+            raise ValueError(
+                "Please provide a Hugging Face token via HF_TOKEN environment "
+                "variable or pass it directly to use_auth_token. Visit "
+                "https://hf.co/settings/tokens to create your access token."
+            )
+            
+        try:
+            self.model = Pipeline.from_pretrained(
+                model_name,
+                use_auth_token=use_auth_token
+            ).to(device)
+        except Exception as e:
+            if "401 Client Error" in str(e):
+                raise ValueError(
+                    "Invalid Hugging Face token. Please check your token and "
+                    "ensure you have accepted the user conditions at "
+                    "https://hf.co/pyannote/speaker-diarization-3.1"
+                ) from e
+            elif "403 Client Error" in str(e):
+                raise ValueError(
+                    "Access denied. Please accept the user conditions at "
+                    "https://hf.co/pyannote/speaker-diarization-3.1"
+                ) from e
+            else:
+                raise
 
     def __call__(self, audio: Union[str, np.ndarray], num_speakers=None, min_speakers=None, max_speakers=None):
         if isinstance(audio, str):
@@ -25,7 +58,22 @@ class DiarizationPipeline:
             'waveform': torch.from_numpy(audio[None, :]),
             'sample_rate': SAMPLE_RATE
         }
-        segments = self.model(audio_data, num_speakers = num_speakers, min_speakers=min_speakers, max_speakers=max_speakers)
+        try:
+            segments = self.model(audio_data, num_speakers = num_speakers, min_speakers=min_speakers, max_speakers=max_speakers)
+        except Exception as e:
+            if "401 Client Error" in str(e):
+                raise ValueError(
+                    "Invalid Hugging Face token. Please check your token and "
+                    "ensure you have accepted the user conditions at "
+                    "https://hf.co/pyannote/speaker-diarization-3.1"
+                ) from e
+            elif "403 Client Error" in str(e):
+                raise ValueError(
+                    "Access denied. Please accept the user conditions at "
+                    "https://hf.co/pyannote/speaker-diarization-3.1"
+                ) from e
+            else:
+                raise
         diarize_df = pd.DataFrame(segments.itertracks(yield_label=True), columns=['segment', 'label', 'speaker'])
         diarize_df['start'] = diarize_df['segment'].apply(lambda x: x.start)
         diarize_df['end'] = diarize_df['segment'].apply(lambda x: x.end)

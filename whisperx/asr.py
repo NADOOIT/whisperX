@@ -1,7 +1,6 @@
 import os
 import warnings
 from typing import List, Union, Optional, NamedTuple
-
 import ctranslate2
 import faster_whisper
 import numpy as np
@@ -12,6 +11,11 @@ from transformers.pipelines.pt_utils import PipelineIterator
 from .audio import N_SAMPLES, SAMPLE_RATE, load_audio, log_mel_spectrogram
 from .vad import load_vad_model, merge_chunks
 from .types import TranscriptionResult, SingleSegment
+from .utils.performance import track_performance
+from .utils.device import get_device_from_name, move_to_device, is_mps_available
+import logging
+
+logger = logging.getLogger(__name__)
 
 def find_numeral_symbol_tokens(tokenizer):
     numeral_symbol_tokens = []
@@ -84,6 +88,93 @@ class WhisperModel(faster_whisper.WhisperModel):
         features = faster_whisper.transcribe.get_ctranslate2_storage(features)
 
         return self.model.encode(features, to_cpu=to_cpu)
+
+class ASRModel:
+    def __init__(self, model_name: str, device: str = None, compute_type: str = "float16", 
+                 download_root: str = None, local_files_only: bool = False):
+        """Initialize ASR model with device support."""
+        self.device = get_device_from_name(device)
+        
+        # Get optimized settings for the device
+        settings = optimize_device_settings(self.device)
+        
+        # Override compute_type if specified
+        if compute_type != "default":
+            settings['compute_type'] = compute_type
+        
+        # Handle MPS-specific configurations
+        if self.device.type == 'mps':
+            if settings['compute_type'] in ["int8", "float16"]:
+                warnings.warn(f"{settings['compute_type']} not supported on MPS. Using float32.")
+                settings['compute_type'] = "float32"
+            # For MPS, we need to use CPU for CTranslate2 but keep tensors on MPS
+            self._ct2_device = "cpu"
+            print(f"Using CPU ({settings['cpu_threads']} threads) for CTranslate2 backend with tensors on MPS")
+        else:
+            self._ct2_device = self.device.type
+        
+        self.compute_type = settings['compute_type']
+        self.model = self._load_model(
+            model_name, 
+            settings['compute_type'],
+            download_root, 
+            local_files_only,
+            cpu_threads=settings['cpu_threads']
+        )
+
+    def _load_model(self, model_name: str, compute_type: str, 
+                   download_root: str, local_files_only: bool,
+                   cpu_threads: int = 4) -> "WhisperModel":
+        """Load the model with appropriate device settings."""
+        model = faster_whisper.WhisperModel(
+            model_name,
+            device=self._ct2_device,
+            compute_type=compute_type,
+            download_root=download_root,
+            local_files_only=local_files_only,
+            cpu_threads=cpu_threads,
+            num_workers=cpu_threads if self._ct2_device == "cpu" else 1,
+        )
+        
+        # If using MPS, move the model's tensors to MPS after loading
+        if self.device.type == 'mps':
+            model = move_to_device(model, self.device)
+        
+        return model
+    
+    def transcribe(self, audio: Union[str, np.ndarray], batch_size: int = None, **kwargs) -> dict:
+        """Transcribe audio with device-specific optimizations."""
+        # Use device-optimized batch size if not specified
+        if batch_size is None:
+            settings = optimize_device_settings(self.device)
+            batch_size = settings['batch_size']
+        
+        # Ensure audio tensor is on the correct device
+        if isinstance(audio, torch.Tensor):
+            audio = audio.to(self.device)
+        
+        # Adjust batch size for MPS
+        if self.device.type == 'mps':
+            batch_size = min(batch_size, 8)  # MPS performs better with smaller batches
+        
+        # Transcribe with optimized settings
+        return self.model.transcribe(audio, batch_size=batch_size, **kwargs)
+    
+    @property
+    def is_multilingual(self) -> bool:
+        """Check if the model is multilingual."""
+        return self.model.is_multilingual
+    
+    def get_device_info(self) -> dict:
+        """Get information about the current device configuration."""
+        return {
+            'device_type': self.device.type,
+            'device_index': self.device.index if self.device.type == 'cuda' else None,
+            'mps_available': is_mps_available(),
+            'compute_type': self.compute_type,
+            'ct2_device': self._ct2_device,
+            'cpu_threads': torch.get_num_threads(),
+        }
 
 class FasterWhisperPipeline(Pipeline):
     """
@@ -256,117 +347,80 @@ class FasterWhisperPipeline(Pipeline):
         print(f"Detected language: {language} ({language_probability:.2f}) in first 30s of audio...")
         return language
 
-def load_model(name: str, device: str = None, compute_type: str = "float16", asr_options: dict = None, language: str = None):
-    """Load the whisper model with fallback support
-    Parameters
-    ----------
-    name : str
-        Name of the model
-    device : str, optional
-        Device to load the model on, by default None
-    compute_type : str, optional
-        Type of compute to use, by default "float16"
-    asr_options : dict, optional
-        ASR options, by default None
-    language: str, optional
-        Language of the model, by default None
-        
-    Returns
-    -------
-    model
-        Whisper model
-    """
-    def try_load_model(device, compute_type):
-        try:
-            if name.endswith(".en"):
-                language = "en"
-
-            model = WhisperModel(name,
-                               device=device,
-                               compute_type=compute_type,
-                               download_root=None,
-                               cpu_threads=4)
-            return model, device, compute_type
-        except Exception as e:
-            print(f"Failed to load model on {device} with {compute_type}: {str(e)}")
-            return None, None, None
-
-    # Determine initial device and compute type
-    if device is None:
-        if torch.cuda.is_available():
-            device = "cuda"
-        elif torch.backends.mps.is_available():
-            device = "mps"
-            if compute_type == "float16":
-                compute_type = "float32"
-        else:
-            device = "cpu"
-            if compute_type == "float16":
-                compute_type = "int8"
-
-    # Try loading with specified device
-    model, final_device, final_compute_type = try_load_model(device, compute_type)
-
-    # Fallback logic
-    if model is None:
-        print(f"Falling back to alternative device...")
-        if device == "mps":
-            # Try CPU as fallback for MPS
-            device = "cpu"
-            compute_type = "int8"
-            model, final_device, final_compute_type = try_load_model(device, compute_type)
-        elif device == "cuda":
-            # Try CPU as fallback for CUDA
-            device = "cpu"
-            compute_type = "int8"
-            model, final_device, final_compute_type = try_load_model(device, compute_type)
-
-    if model is None:
-        raise RuntimeError(f"Failed to load model on any available device")
-
-    if language is not None:
-        tokenizer = faster_whisper.tokenizer.Tokenizer(model.hf_tokenizer, model.model.is_multilingual, task="transcribe", language=language)
+def get_optimal_device():
+    """Determine the optimal device and compute type for the current system."""
+    if torch.cuda.is_available():
+        return "cuda", "float16"
+    elif torch.backends.mps.is_available():
+        # MPS (Apple Silicon) support
+        # Currently, CTranslate2 doesn't support MPS directly
+        # We'll use CPU with optimized settings for now
+        return "cpu", "float32"
     else:
-        print("No language specified, language will be first be detected for each audio file (increases inference time).")
-        tokenizer = None
+        return "cpu", "int8"
 
-    default_asr_options = {
-        "beam_size": 5,
-        "best_of": 5,
-        "patience": 1,
-        "length_penalty": 1,
-        "repetition_penalty": 1,
-        "no_repeat_ngram_size": 0,
-        "temperatures": [0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
-        "compression_ratio_threshold": 2.4,
-        "log_prob_threshold": -1.0,
-        "no_speech_threshold": 0.6,
-        "condition_on_previous_text": False,
-        "initial_prompt": None,
-        "prefix": None,
-        "suppress_blank": True,
-        "suppress_tokens": [-1],
-        "without_timestamps": False,
-        "max_initial_timestamp": 1.0,
-        "word_timestamps": True,
-        "prepend_punctuations": "\"'"¿([{-",
-        "append_punctuations": "\"'.。,，!！?？:：")]}、",
-        "suppress_numerals": False,
-    }
+def optimize_device_settings(device):
+    if device.type == 'cuda':
+        return {
+            'compute_type': 'float16',
+            'batch_size': 32,
+            'cpu_threads': 4
+        }
+    elif device.type == 'mps':
+        return {
+            'compute_type': 'float32',
+            'batch_size': 8,
+            'cpu_threads': 4
+        }
+    else:
+        return {
+            'compute_type': 'int8',
+            'batch_size': 16,
+            'cpu_threads': 4
+        }
 
-    if asr_options is not None:
-        default_asr_options.update(asr_options)
-
-    default_vad_options = {
-        "vad_onset": 0.500,
-        "vad_offset": 0.363
-    }
-
-    vad_model = load_vad_model(torch.device(final_device), use_auth_token=None, **default_vad_options)
-
-    return FasterWhisperPipeline(
-        model=model,
-        vad=vad_model,
-        options=default_asr_options,
-        tokenizer=tokenizer
-    )
+@track_performance("load_model")
+def load_model(
+    model_size_or_path: str,
+    device: str = "auto",
+    compute_type: str = "default",
+    download_root: str = None,
+    local_files_only: bool = False,
+) -> "WhisperModel":
+    """Load a Whisper model for inference.
+    
+    Args:
+        model_size_or_path: Size or path of the model to load
+        device: Device to use (auto, cpu, cuda, mps)
+        compute_type: Type of computation (default, float16, float32, int8)
+        download_root: Directory to download model to
+        local_files_only: Only use local files
+        
+    Returns:
+        WhisperModel: Loaded model
+    """
+    if device == "auto":
+        device, default_compute = get_optimal_device()
+        if compute_type == "default":
+            compute_type = default_compute
+    
+    try:
+        model = WhisperModel(
+            model_size_or_path,
+            device=device,
+            compute_type=compute_type,
+            download_root=download_root,
+            local_files_only=local_files_only,
+        )
+        return model
+    except ValueError as e:
+        if "unsupported device mps" in str(e):
+            logger.warning("MPS device not supported by CTranslate2, falling back to CPU")
+            return load_model(
+                model_size_or_path,
+                device="cpu",
+                compute_type="float32",
+                download_root=download_root,
+                local_files_only=local_files_only,
+            )
+        raise

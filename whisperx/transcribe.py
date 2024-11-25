@@ -12,7 +12,8 @@ from .audio import load_audio
 from .diarize import DiarizationPipeline, assign_word_speakers
 from .utils import (LANGUAGES, TO_LANGUAGE_CODE, get_writer, optional_float,
                     optional_int, str2bool)
-
+from .utils.device import get_device_from_name, move_to_device
+from .adaptive import AdaptiveProcessor
 
 def cli():
     # fmt: off
@@ -76,6 +77,9 @@ def cli():
     parser.add_argument("--hf_token", type=str, default=None, help="Hugging Face Access Token to access PyAnnote gated models")
 
     parser.add_argument("--print_progress", type=str2bool, default = False, help = "if True, progress will be printed in transcribe() and align() methods.")
+    parser.add_argument("--speaker_id", type=str, default=None, help="Optional speaker ID for adaptation")
+    parser.add_argument("--adapt_model", type=str2bool, default=False, help="Whether to use speaker adaptation")
+    parser.add_argument("--enhance_audio", type=str2bool, default=False, help="Whether to apply audio enhancement")
     # fmt: on
 
     args = parser.parse_args().__dict__
@@ -111,6 +115,10 @@ def cli():
     min_speakers: int = args.pop("min_speakers")
     max_speakers: int = args.pop("max_speakers")
     print_progress: bool = args.pop("print_progress")
+
+    speaker_id: str = args.pop("speaker_id")
+    adapt_model: bool = args.pop("adapt_model")
+    enhance_audio: bool = args.pop("enhance_audio")
 
     if args["language"] is not None:
         args["language"] = args["language"].lower()
@@ -167,12 +175,41 @@ def cli():
     results = []
     tmp_results = []
     # model = load_model(model_name, device=device, download_root=model_dir)
-    model = load_model(model_name, device=device, device_index=device_index, download_root=model_dir, compute_type=compute_type, language=args['language'], asr_options=asr_options, vad_options={"vad_onset": vad_onset, "vad_offset": vad_offset}, task=task, threads=faster_whisper_threads)
+    device = get_device_from_name(device)
+    if device.type == 'mps' and compute_type == "int8":
+        compute_type = "float16"  # MPS doesn't support int8, fallback to float16
+    model = load_model(model_name, device=device.type, compute_type=compute_type, language=args['language'], asr_options=asr_options, vad_options={"vad_onset": vad_onset, "vad_offset": vad_offset}, task=task, threads=faster_whisper_threads)
+
+    adaptive_processor = None
+    if adapt_model or enhance_audio or speaker_id:
+        adaptive_processor = AdaptiveProcessor(device=device)
 
     for audio_path in args.pop("audio"):
         audio = load_audio(audio_path)
+        # Apply audio enhancement if requested
+        if enhance_audio:
+            audio = adaptive_processor.enhance_audio(audio, target_speaker=speaker_id)
+
+        # Load or create speaker profile
+        if speaker_id and adaptive_processor:
+            try:
+                profile = adaptive_processor.voice_profiles[speaker_id]
+            except KeyError:
+                if print_progress:
+                    print(f"Creating new voice profile for speaker {speaker_id}")
+                profile = adaptive_processor.create_voice_profile(
+                    audio_path, speaker_id, language or "en"
+                )
+        
+            # Adapt model if requested
+            if adapt_model:
+                adaptive_processor.adapt_to_speaker(profile, model)
+
         # >> VAD & ASR
         print(">>Performing transcription...")
+        if device.type == 'mps':
+            # MPS performs better with smaller batch sizes
+            batch_size = min(batch_size, 8)
         result = model.transcribe(audio, batch_size=batch_size, chunk_size=chunk_size, print_progress=print_progress)
         results.append((result, audio_path))
 
