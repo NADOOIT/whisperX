@@ -1,6 +1,7 @@
 torch>=2
 torchaudio>=2
-ctranslate2 @ git+https://github.com/NADOOITChristophBa/CTranslate2.git@feature/apple-silicon
+# ctranslate2 @ git+https://github.com/NADOOITChristophBa/CTranslate2.git@surfer
+-e ../ctranslate2-metal
 faster-whisper==1.0.0
 transformers
 pandas

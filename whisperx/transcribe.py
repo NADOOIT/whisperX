@@ -166,8 +166,38 @@ def cli():
     # Part 1: VAD & ASR Loop
     results = []
     tmp_results = []
-    # model = load_model(model_name, device=device, download_root=model_dir)
-    model = load_model(model_name, device=device, device_index=device_index, download_root=model_dir, compute_type=compute_type, language=args['language'], asr_options=asr_options, vad_options={"vad_onset": vad_onset, "vad_offset": vad_offset}, task=task, threads=faster_whisper_threads)
+    model_kwargs = {
+        "device": device,
+        "download_root": model_dir,
+        "compute_type": compute_type,
+        "language": args['language'],
+        "asr_options": asr_options,
+        "vad_options": {"vad_onset": vad_onset, "vad_offset": vad_offset},
+        "task": task,
+        "threads": faster_whisper_threads
+    }
+    model_kwargs.pop('download_root', None)
+    model_kwargs.pop('vad_options', None) # Remove the 'vad_options' from model_kwargs
+
+    # Set default task to 'transcribe'
+    task = 'transcribe'
+    # Remove task from model_kwargs if present
+    model_kwargs.pop('task', None)
+
+    # Check for optional parameters that are not yet implemented
+    optional_params = ['download_root', 'vad_options', 'task']
+    for param in optional_params:
+        if param in model_kwargs:
+            raise NotImplementedError(f"The '{param}' parameter is not yet implemented.")
+
+    # Filter out unsupported keyword arguments for load_model
+    supported_kwargs = {
+        "device": model_kwargs["device"],
+        "compute_type": model_kwargs["compute_type"],
+        "asr_options": model_kwargs["asr_options"],
+        "language": model_kwargs["language"]
+    }
+    model = load_model(model_name, **supported_kwargs)
 
     for audio_path in args.pop("audio"):
         audio = load_audio(audio_path)

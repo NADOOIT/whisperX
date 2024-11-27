@@ -256,7 +256,7 @@ class FasterWhisperPipeline(Pipeline):
         print(f"Detected language: {language} ({language_probability:.2f}) in first 30s of audio...")
         return language
 
-def load_model(name: str, device: str = None, compute_type: str = "float16", asr_options: dict = None, language: str = None):
+def load_model(name: str = "base", device: str = None, compute_type: str = "float16", asr_options: dict = None, language: str = None):
     """Load the whisper model with fallback support
     Parameters
     ----------
@@ -304,12 +304,23 @@ def load_model(name: str, device: str = None, compute_type: str = "float16", asr
             if compute_type == "float16":
                 compute_type = "int8"
 
+    # Check for Metal support and adjust device and compute type
+    if torch.backends.mps.is_available():
+        device = "mps"
+        if compute_type == "float16":
+            compute_type = "float32"
+        print("Using Metal Performance Shaders (MPS) with compute type float32.")
+    elif device == "cpu" and compute_type == "float16":
+        compute_type = "float32"
+        print("Adjusted compute type to float32 for CPU compatibility.")
+
     # Try loading with specified device
+    print(f"Trying to load model '{name}' on device '{device}' with compute type '{compute_type}'")
     model, final_device, final_compute_type = try_load_model(device, compute_type)
 
     # Fallback logic
     if model is None:
-        print(f"Falling back to alternative device...")
+        print("Fallback logic activated: Trying alternative devices...")
         if device == "mps":
             # Try CPU as fallback for MPS
             device = "cpu"
@@ -324,6 +335,7 @@ def load_model(name: str, device: str = None, compute_type: str = "float16", asr
     if model is None:
         raise RuntimeError(f"Failed to load model on any available device")
 
+    print(f"Successfully loaded model on {final_device} with compute type {final_compute_type}")
     if language is not None:
         tokenizer = faster_whisper.tokenizer.Tokenizer(model.hf_tokenizer, model.model.is_multilingual, task="transcribe", language=language)
     else:
@@ -349,8 +361,8 @@ def load_model(name: str, device: str = None, compute_type: str = "float16", asr
         "without_timestamps": False,
         "max_initial_timestamp": 1.0,
         "word_timestamps": True,
-        "prepend_punctuations": "\"'"¿([{-",
-        "append_punctuations": "\"'.。,，!！?？:：")]}、",
+        "prepend_punctuations": "\"'([{-",
+        "append_punctuations": "\"'.。,，!！?？:：)}、",
         "suppress_numerals": False,
     }
 
@@ -364,9 +376,12 @@ def load_model(name: str, device: str = None, compute_type: str = "float16", asr
 
     vad_model = load_vad_model(torch.device(final_device), use_auth_token=None, **default_vad_options)
 
+    print("Returning FasterWhisperPipeline instance...")
+    print(f"Creating FasterWhisperPipeline with model: {model}, vad: {vad_model}, options: {default_asr_options}, tokenizer: {tokenizer}")
     return FasterWhisperPipeline(
         model=model,
         vad=vad_model,
+        vad_params=default_vad_options,
         options=default_asr_options,
         tokenizer=tokenizer
     )
