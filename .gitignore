@@ -1,3 +1,6 @@
 whisperx.egg-info/
 **/__pycache__/
 .ipynb_checkpoints
+# Ignore the .env file containing sensitive information
+.env
+/venv
