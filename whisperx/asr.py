@@ -30,6 +30,7 @@ class WhisperModel(faster_whisper.WhisperModel):
     '''
     FasterWhisperModel provides batched inference for faster-whisper.
     Currently only works in non-timestamp mode and fixed prompt for all samples in batch.
+    This version is compatible with faster-whisper 1.1.0.
     '''
 
     def generate_segment_batched(self, features: np.ndarray, tokenizer: faster_whisper.tokenizer.Tokenizer, options: faster_whisper.transcribe.TranscriptionOptions, encoder_output = None):
@@ -48,34 +49,28 @@ class WhisperModel(faster_whisper.WhisperModel):
             prefix=options.prefix,
         )
 
-        encoder_output = self.encode(features)
+        if encoder_output is None:
+            encoder_output = self.encode(features)
 
         max_initial_timestamp_index = int(
             round(options.max_initial_timestamp / self.time_precision)
         )
 
+        # Updated for faster-whisper 1.1.0 API
         result = self.model.generate(
-                encoder_output,
-                [prompt] * batch_size,
-                beam_size=options.beam_size,
-                patience=options.patience,
-                length_penalty=options.length_penalty,
-                max_length=self.max_length,
-                suppress_blank=options.suppress_blank,
-                suppress_tokens=options.suppress_tokens,
-            )
+            encoder_output,
+            [prompt] * batch_size,
+            beam_size=options.beam_size,
+            patience=options.patience,
+            length_penalty=options.length_penalty,
+            max_length=self.max_length,
+            suppress_blank=options.suppress_blank,
+            suppress_tokens=options.suppress_tokens,
+        )
 
+        # Handle the updated result format in 1.1.0
         tokens_batch = [x.sequences_ids[0] for x in result]
-
-        def decode_batch(tokens: List[List[int]]) -> str:
-            res = []
-            for tk in tokens:
-                res.append([token for token in tk if token < tokenizer.eot])
-            # text_tokens = [token for token in tokens if token < self.eot]
-            return tokenizer.tokenizer.decode_batch(res)
-
-        text = decode_batch(tokens_batch)
-
+        text = tokenizer.tokenizer.decode_batch([tokens for tokens in tokens_batch])
         return text
 
     def encode(self, features: np.ndarray) -> ctranslate2.StorageView:
@@ -85,8 +80,8 @@ class WhisperModel(faster_whisper.WhisperModel):
         # unsqueeze if batch size = 1
         if len(features.shape) == 2:
             features = np.expand_dims(features, 0)
-        features = faster_whisper.transcribe.get_ctranslate2_storage(features)
-
+        
+        features = ctranslate2.StorageView.from_array(features)
         return self.model.encode(features, to_cpu=to_cpu)
 
 class ASRModel:

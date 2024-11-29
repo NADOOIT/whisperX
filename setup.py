@@ -16,12 +16,15 @@ setup(
     license="MIT",
     packages=find_packages(exclude=["tests*"]),
     install_requires=[
-        str(r)
-        for r in pkg_resources.parse_requirements(
-            open(os.path.join(os.path.dirname(__file__), "requirements.txt"))
-        )
-    ]
-    + [f"pyannote.audio==3.1.1"],
+        "ctranslate2 @ git+https://github.com/NADOOIT/CTranslate2.git@surfer",
+        "faster-whisper==1.1.0",
+        "torch>=2",
+        "torchaudio>=2",
+        "transformers",
+        "pandas",
+        "setuptools>=65",
+        "pyannote.audio==3.1.1"
+    ],
     entry_points={
         "console_scripts": ["whisperx=whisperx.transcribe:cli"],
     },
