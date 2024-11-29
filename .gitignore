@@ -43,3 +43,10 @@ wheels/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Test files
+tests/assets/*.wav
+tests/assets/*.mp3
+tests/assets/*.m4a
+tests/assets/*.ogg
+tests/assets/*.flac
