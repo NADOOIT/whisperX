@@ -393,7 +393,7 @@ Bitte geben Sie bei Supportanfragen möglichst genaue Informationen zu System, W
   - Verbesserte Dokumentation, neue Troubleshooting- und FAQ-Abschnitte
   - Batch-Transkription und Feedback-Loop-Beispiele ergänzt
 - **v1.1.0** (2025-03):
-  - NADOO Launchpad Integration
+  - Web UI enhancements and integration
   - Erweiterte Python-API für Profilmanagement
 - **v1.0.0** (2025-02):
   - Einführung der adaptiven Lernfunktionen und Sprecherprofile

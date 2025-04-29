@@ -24,7 +24,51 @@ pip install -r requirements.txt
 pip install uvicorn[standard] jinja2 fastapi tk
 ``` 
 
-## 3. Data Preparation
+## 3. Data Preparation & Experiment Workflow (UI-Driven)
+
+### 3.1 Fastest Way to Reproduce All Results
+The entire workflow for data upload, experiment setup, and result reproduction is handled exclusively via the provided **Web UI** (FastAPI). **Manual file operations or config editing are not required.**
+
+#### Step-by-Step: Reproducible Experiments with the Web UI
+1. **Start the Application:**
+   - Web UI: `cd webui && uvicorn main:app --reload --port 8000`
+   - Öffne http://localhost:8000 in deinem Browser.
+
+2. **(Optional) Create or Select Speaker Profile:**
+   - Im Web UI einen neuen Sprecher anlegen oder bestehenden auswählen.
+
+3. **Upload Data:**
+   - Lade Audiodateien (WAV) per Drag & Drop oder Dateiauswahl hoch.
+   - (Optional) Lade zugehörige Transkripte (.txt) direkt mit hoch oder ordne sie nach dem Upload zu.
+   - Die Web UI organisiert automatisch alle Daten im richtigen Format und Ordner.
+
+4. **(Optional) Metadaten:**
+   - Du kannst im Web UI Zusatzinfos wie Sprache, Gerät, Notizen hinterlegen.
+
+5. **Start Training & Experiments:**
+   - Starte das Training direkt im Web UI (Button oder automatischer Start nach Upload).
+   - Fortschritt, Status und Metriken werden live angezeigt.
+
+6. **Ergebnisse & Export:**
+   - Alle Resultate (Metriken, Modelle, Plots) werden automatisch gespeichert und sind im Web UI abrufbar.
+   - Du kannst CSVs, Modelle und Logs direkt herunterladen.
+
+7. **Reproduzierbarkeit garantiert:**
+   - Die Web UI sorgt dafür, dass alle Schritte, Daten und Konfigurationen automatisch korrekt ausgeführt werden.
+   - Kein manuelles Anlegen von Ordnern, keine Pfadangaben, keine YAML-Edits nötig.
+
+#### Hinweise
+- **Alle Daten bleiben lokal.** Es erfolgt kein Upload nach außen.
+- **Automatische Datenstruktur:** Die Web UI legt alle benötigten Ordner/Dateien selbst an.
+- **Transkripte optional:** Falls keine .txt-Datei vorhanden, wird automatisch transkribiert.
+- **Mehrere Sprecher:** Einfach im Web UI neue Profile anlegen und Daten hochladen.
+
+#### Für Fortgeschrittene (optional)
+- Wer die Datenstruktur manuell prüfen oder eigene Skripte nutzen möchte, findet alle Daten im automatisch verwalteten Upload-Ordner (Standard: `uploads/` im Projektroot).
+- Die Konfiguration (`default_config.yaml`) wird von der Web UI automatisch angepasst.
+
+---
+
 1. Download and extract VoxCeleb1 into `data/vox1`
 2. Place user-collected audio in `data/user` (organized by speaker ID)
 3. (Optional) Generate or collect Deepfake/replay samples in `data/attacks`
@@ -53,12 +97,6 @@ uvicorn main:app --reload --port 8000
 # then visit http://localhost:8000 in your browser
 ```
 
-## 7. Launch Tkinter GUI (Launchpad)
-From the `launchpad` folder, run the Launchpad app:
-```bash
-cd ../launchpad
-python app.py
-```
 
 ## 8. Verification
 - Compare `results/*.csv` and `results/plots/*` with figures and tables in the paper.
@@ -72,8 +110,8 @@ While experiments are running, use the FastAPI interface:
 - **Training**: Trigger training runs with optional notes
 - **Metrics**: Download CSV of WER history and flagged data
 
-## 10. Speaker Training via Launchpad GUI
-Use the Tkinter Launchpad for offline management:
+## 10. Speaker Training via Web UI
+Use the Web UI for all speaker training and management:
 - Launch with `python app.py`
 - Create/Delete speaker profiles, add samples via drag & drop
 - Monitor training progress and WER history in real time
@@ -82,7 +120,6 @@ Use the Tkinter Launchpad for offline management:
 ## 11. Logging and Proof-of-Execution
 - Scripts write logs to `results/logs/`: `training.log`, `attack.log`, `recovery.log`
 - Web UI actions are logged to `logs/webui.log`
-- Launchpad GUI actions are logged to `logs/launchpad.log`
 - Archive logs alongside results as proof of reproducibility.
 
 ## 12. Notes
@@ -101,7 +138,7 @@ Use the Tkinter Launchpad for offline management:
 
 ## 14. Troubleshooting & FAQs
 - **uvicorn-Fehler:** Stelle sicher, dass alle Dependencies installiert sind (`pip install -r requirements.txt`)
-- **Tkinter nicht gefunden:** Installiere Tcl/Tk (z.B. `brew install tcl-tk`) und `pip install tk`
+
 - **Experimentskript hängt:** Prüfe Log-Dateien in `results/logs/` auf Fehler
 - **Uploads im Web UI fehlgeschlagen:** Überprüfe Schreibrechte in `uploads/`
 - **Weitere Fragen:** Bitte öffne ein Issue im GitHub-Repository unter `https://github.com/NADOOIT/whisperX/issues`
@@ -112,7 +149,7 @@ Use the Tkinter Launchpad for offline management:
 ```bash
 whisperX/
 ├── agent_research_paper/      # Skripte, Guide, Ergebnisse
-├── launchpad/                 # Tkinter-GUI (app.py)
+
 ├── webui/                     # FastAPI-Server (main.py, templates, static)
 ├── whisperx/                  # Core-Python-Pakete
 ├── uploads/                   # Hochgeladene Audio/Transcripts
@@ -154,6 +191,3 @@ docker run --rm -v $(pwd):/app whisperx:latest
 ```bash
 docker run --rm -p 8000:8000 -v $(pwd)/uploads:/app/uploads whisperx:latest uvicorn webui.main:app --host 0.0.0.0 --port 8000
 ```
-- (Optional) Launch GUI with X11:
-```bash
-docker run --rm -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix whisperx:latest python launchpad/app.py

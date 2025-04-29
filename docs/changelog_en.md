@@ -7,7 +7,7 @@ Major changes and release notes for WhisperX and adaptive features.
 - Added batch transcription and feedback loop examples
 
 ## v1.1.0 (2025-03)
-- NADOO Launchpad integration
+- Web UI enhancements and integration
 - Extended Python API for profile management
 
 ## v1.0.0 (2025-02)

@@ -108,7 +108,7 @@ def test_training_without_transcripts():
         shutil.rmtree(tmpdir)
 
 # --- TDD: Tests für GUI-Logik (Pseudo, für spätere Implementierung) ---
-def test_gui_add_train_and_evaluate(monkeypatch):
-    # Diese Funktion wird später mit GUI-Testtools (z.B. pytest-tkinter) umgesetzt
-    # Hier nur als UseCase-Check
+def test_webui_add_train_and_evaluate(monkeypatch):
+    # Diese Funktion sollte mit WebUI-Testtools (z.B. Playwright, Selenium) umgesetzt werden
+    # Hier nur als UseCase-Check für das Web UI
     assert True  # Placeholder

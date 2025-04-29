@@ -7,7 +7,7 @@ Hier findest du die wichtigsten Änderungen und Versionshinweise zu WhisperX und
 - Batch-Transkription und Feedback-Loop-Beispiele ergänzt
 
 ## v1.1.0 (2025-03)
-- NADOO Launchpad Integration
+- Web UI enhancements and integration
 - Erweiterte Python-API für Profilmanagement
 
 ## v1.0.0 (2025-02)
