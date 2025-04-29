@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WhisperX Speaker Training WebUI</title>
+    <link rel="stylesheet" href="/static/bootstrap.min.css">
+    <style>
+        body { padding: 2em; }
+        .progress { height: 25px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Speaker Training</h1>
+        <div class="mb-2">
+            <strong>Aktuelle Profile:</strong>
+            {% if profiles|length == 0 %}
+                <span class="text-muted">(noch keine Profile vorhanden)</span>
+            {% else %}
+                {% for profile in profiles %}
+                    <span class="badge bg-info text-dark">{{ profile.speaker_id }}: {{ profile.name }}</span>
+                {% endfor %}
+            {% endif %}
+        </div>
+        {% if success %}
+        <div class="alert alert-success">{{ success }}</div>
+        {% endif %}
+        {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+        <form action="/create_profile" method="post" enctype="multipart/form-data" class="mb-4">
+            <div class="row">
+                <div class="col-md-5 mb-2">
+                    <input name="name" class="form-control" placeholder="Profilname" required>
+                </div>
+                <div class="col-md-5 mb-2">
+                    <input type="file" name="audio" class="form-control" required>
+                </div>
+                <div class="col-md-2 mb-2">
+                    <button type="submit" class="btn btn-secondary">Profil + erstes Sample anlegen</button>
+                </div>
+            </div>
+        </form>
+        <form action="/upload" method="post" enctype="multipart/form-data" class="mb-4">
+            <div class="mb-3">
+                <label for="speaker_id" class="form-label">Speaker Profile:</label>
+                <select name="speaker_id" id="speaker_id" class="form-select" required>
+                    {% for profile in profiles %}
+                        <option value="{{ profile.speaker_id }}">{{ profile.speaker_id }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Audio File:</label>
+                <input type="file" name="audio" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Transcript (optional):</label>
+                <input type="file" name="transcript" class="form-control">
+            </div>
+            <button type="submit" class="btn btn-primary">Upload Sample</button>
+        </form>
+        <h2>Profiles</h2>
+        <table class="table table-bordered align-middle">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Samples</th>
+                    <th>Letzte Änderung</th>
+                    <th>Adapter</th>
+                    <th>Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for profile in profiles %}
+                <tr>
+                    <td>{{ profile.speaker_id }}</td>
+                    <td>{{ profile.name }}</td>
+                    <td>{{ profile.sample_count }}</td>
+                    <td>{% if profile.last_mod %}{{ profile.last_mod }}{% else %}<span class="text-muted">–</span>{% endif %}</td>
+                    <td><span id="adapter-status-{{ profile.speaker_id }}"></span></td>
+                    <td>
+                        <button class="btn btn-success btn-sm" onclick="startTrainingWithProgress('{{ profile.speaker_id }}')">Trainieren</button> <span id="training-spinner-{{ profile.speaker_id }}" class="spinner-border spinner-border-sm text-success d-none" role="status"></span>
+                        <button class="btn btn-danger btn-sm" onclick="deleteAdapter('{{ profile.speaker_id }}')">Adapter löschen</button> <button class="btn btn-outline-danger btn-sm" onclick="return confirmProfileDelete('{{ profile.speaker_id }}', '{{ profile.name }}')">Profil löschen</button>
+                        <button class="btn btn-info btn-sm" onclick="showAdapterStatus('{{ profile.speaker_id }}')">Status</button>
+                        <button class="btn btn-outline-primary btn-sm" onclick="toggleUploadForm('{{ profile.speaker_id }}')">Sample hinzufügen</button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="toggleSampleList('{{ profile.speaker_id }}')">Samples anzeigen</button>
+                        <div class="progress mt-2" id="progressbar-{{ profile.speaker_id }}" style="display:none;">
+                          <div class="progress-bar" role="progressbar" style="width:0%"></div>
+                        </div>
+                        <form action="/add_sample/{{ profile.speaker_id }}" method="post" enctype="multipart/form-data" class="mt-2 d-none" id="upload-form-{{ profile.speaker_id }}">
+                            <div class="input-group mb-3">
+                                <input type="file" name="audio" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <textarea id="train-note" class="form-control" rows="2" placeholder="Optional: Notiz zum Trainingslauf (Parameter, Beobachtungen...)"></textarea>
+                                <button class="btn btn-primary mt-2" type="button" onclick="startTrainingWithNote('{{ profile.speaker_id }}')">Training starten</button>
+                            </div>
+                        </form>
+                    </td>
+                </tr>
+                <tr class="d-none" id="sample-list-row-{{ profile.speaker_id }}">
+                    <td colspan="6">
+                        <div class="bg-light p-3 rounded">
+                            <strong>Samples für {{ profile.name }}:</strong>
+                            {% if profile.samples and profile.samples|length > 0 %}
+                                <ul class="list-unstyled mb-0">
+                                {% for s in profile.samples %}
+                                    <li class="d-flex align-items-center mb-1">
+                                        <span class="me-2">{{ s.filename }}</span>
+                                        <small class="text-muted me-2">({{ s.size }} KB, hochgeladen: {{ s.mtime }})</small>
+                                        <form action="/delete_sample/{{ profile.speaker_id }}" method="post" class="d-inline ms-2" onsubmit="return confirm('Sample wirklich löschen?');">
+                                            <input type="hidden" name="filename" value="{{ s.filename }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Entfernen</button>
+                                        </form>
+                                    </li>
+                                {% endfor %}
+                                </ul>
+                            {% else %}
+                                <span class="text-muted">Keine Samples vorhanden.</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+<!-- Profil-Löschen Modal (Bootstrap) -->
+<div class="modal fade" id="profileDeleteModal" tabindex="-1" aria-labelledby="profileDeleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="profileDeleteModalLabel">Profil löschen</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+      </div>
+      <div class="modal-body">
+        <p id="profile-delete-modal-text">Soll das Profil wirklich gelöscht werden?</p>
+      </div>
+      <div class="modal-footer">
+        <form id="profile-delete-form" method="post">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+          <button type="submit" class="btn btn-danger">Profil löschen</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function confirmProfileDelete(speakerId, name) {
+    document.getElementById('profile-delete-modal-text').innerText = `Profil "${name}" wirklich löschen? Alle Samples und Adapter werden entfernt!`;
+    document.getElementById('profile-delete-form').action = `/delete_profile/${speakerId}`;
+    var modal = new bootstrap.Modal(document.getElementById('profileDeleteModal'));
+    modal.show();
+    return false;
+}
+function startTrainingWithProgress(speakerId) {
+    let spinner = document.getElementById('training-spinner-' + speakerId);
+    if (spinner) spinner.classList.remove('d-none');
+    startTraining(speakerId);
+    setTimeout(function() { if (spinner) spinner.classList.add('d-none'); }, 8000); // Spinner nach 8s ausblenden (Demo)
+}
+</script>
+        <hr class="my-5">
+        <h2>Testdaten-Metriken (Qualität)</h2>
+        <div id="metrics-section" class="mb-5">
+            <div class="mb-2">
+                <label for="metrics-profile-select" class="form-label">Profil für Auswertung wählen:</label>
+                <select id="metrics-profile-select" class="form-select" style="max-width: 300px; display: inline-block;">
+                    {% for profile in profiles %}
+                        <option value="{{ profile.speaker_id }}">{{ profile.name }} ({{ profile.speaker_id }})</option>
+                    {% endfor %}
+                </select>
+                <button class="btn btn-outline-secondary btn-sm ms-2" onclick="refreshMetrics()">Aktualisieren</button>
+            </div>
+            <div id="metrics-summary" class="mb-3"></div>
+            <button class="btn btn-success btn-sm mb-2 me-2" onclick="downloadMetricsCSV()">Metriken als CSV herunterladen</button>
+            <button class="btn btn-secondary btn-sm mb-2 me-2" onclick="downloadFlaggedTestdataCSV()">Markierte Testdaten als CSV herunterladen</button>
+            <button class="btn btn-info btn-sm mb-2 me-2" onclick="downloadFlaggedTestdataZIP()">Markierte Testdaten als ZIP herunterladen</button>
+            <button class="btn btn-danger btn-sm mb-2 me-2" id="remove-bad-testdata-btn" style="display:none;" onclick="removeAllBadTestdata()">Alle schlechten Testdaten entfernen (WER > 30%)</button>
+            <button class="btn btn-outline-warning btn-sm mb-2" id="toggle-flagged-filter" onclick="toggleFlaggedFilter()">Nur markierte Testdaten anzeigen</button>
+            <button class="btn btn-secondary btn-sm mb-2" onclick="downloadMetricsHistoryCSV()">WER-Verlauf als CSV herunterladen</button>
+            <div id="metrics-table"></div>
+            <canvas id="metrics-wer-chart" height="80"></canvas>
+            <div id="metrics-history-section" style="display:none;">
+                <label class="form-label mt-3">WER-Verlauf über Trainingsläufe</label>
+                <button class="btn btn-outline-success btn-sm mb-2 ms-2" onclick="downloadMetricsHistoryCSV()">WER-Verlauf als CSV herunterladen</button>
+                <canvas id="metrics-wer-history-chart" height="80"></canvas>
+            </div>
+        </div>
+        <hr class="my-5">
+        <h2>Testdaten (Validierung)</h2>
+        <form action="/upload_testdata" method="post" enctype="multipart/form-data" class="mb-4">
+            <div class="row">
+                <div class="col-md-5 mb-2">
+                    <input type="file" name="audio" class="form-control" required>
+                </div>
+                <div class="col-md-5 mb-2">
+                    <input type="file" name="transcript" class="form-control" required>
+                </div>
+                <div class="col-md-2 mb-2">
+                    <button type="submit" class="btn btn-primary">Testdaten hochladen</button>
+                </div>
+            </div>
+        </form>
+        <div id="dropzone" class="border border-2 border-primary rounded p-4 text-center mb-4" style="background: #f8fafc; cursor: pointer;">
+            <b>Oder Dateien hierher ziehen (Audio + Transkript, Mehrfachauswahl möglich)</b>
+            <div class="text-muted small">Audio: wav, mp3, flac, ogg, m4a &nbsp; | &nbsp; Transkript: txt</div>
+            <input type="file" id="dropzone-input" multiple style="display:none;" accept=".wav,.mp3,.flac,.ogg,.m4a,.txt">
+        </div>
+        <script>
+        function toggleUploadForm(speakerId) {
+            let form = document.getElementById('upload-form-' + speakerId);
+            if(form.classList.contains('d-none')) {
+                form.classList.remove('d-none');
+            } else {
+                form.classList.add('d-none');
+            }
+        }
+        </script>
+    </div>
+    <script src="/static/metrics.js"></script>
+    <script src="/static/metrics_actions.js"></script>
+    <script src="/static/metrics_download.js"></script>
+    <script src="/static/metrics_history_download.js"></script>
+    <script src="/static/metrics_flag.js"></script>
+    <script src="/static/flagged_testdata_download.js"></script>
+    <script src="/static/flagged_testdata_zip.js"></script>
+    <script src="/static/remove_flagged_testdata.js"></script>
+    <script src="/static/dropzone_upload.js"></script>
+    <script src="/static/train_with_note.js"></script>
+    <script src="/static/metrics_history_csv.js"></script>
+    <script>
+    function startTraining(speakerId) {
+        fetch('/train/' + speakerId, {method: 'POST'})
+        .then(() => {
+            let pb = document.getElementById('progressbar-' + speakerId);
+            pb.style.display = '';
+            pollProgress(speakerId);
+        });
+    }
+    function pollProgress(speakerId) {
+        fetch('/progress/' + speakerId)
+        .then(r => r.json()).then(data => {
+            let pb = document.getElementById('progressbar-' + speakerId);
+            let bar = pb.querySelector('.progress-bar');
+            bar.style.width = data.progress + '%';
+            if(data.progress < 100 && data.progress >= 0) {
+                setTimeout(() => pollProgress(speakerId), 1000);
+            } else if(data.progress == 100) {
+                bar.classList.add('bg-success');
+                setTimeout(() => { pb.style.display = 'none'; bar.style.width = '0%'; bar.classList.remove('bg-success'); }, 2000);
+            } else if(data.progress == -1) {
+                bar.classList.add('bg-danger');
+            }
+        });
+    }
+    function deleteAdapter(speakerId) {
+        fetch('/delete_adapter/' + speakerId, {method: 'POST'})
+        .then(() => location.reload());
+    }
+    function showAdapterStatus(speakerId) {
+        fetch('/adapter_status/' + speakerId)
+        .then(r => r.json())
+        .then(data => {
+            let s = document.getElementById('adapter-status-' + speakerId);
+            if(data.exists) s.textContent = '✔️';
+            else s.textContent = '❌';
+        });
+    }
+    window.onload = function() {
+        {% for profile in profiles %}
+        showAdapterStatus('{{ profile.speaker_id }}');
+        {% endfor %}
+    }
+    </script>
+</body>
+</html>

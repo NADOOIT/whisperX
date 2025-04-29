@@ -1,4 +1,5 @@
 import os
+import pytest
 import whisperx
 import torch
 from pathlib import Path
@@ -9,8 +10,7 @@ input_dir = "/Users/christophbackhaus/nadoo_launchpad/dir/converter/in"
 # Find the first WAV file in the input directory
 wav_files = list(Path(input_dir).glob("*.wav"))
 if not wav_files:
-    print("No WAV files found in the input directory")
-    exit(1)
+    pytest.skip("No WAV files found in the input directory", allow_module_level=True)
 
 wav_file = str(wav_files[0])
 print(f"Found WAV file: {wav_file}")

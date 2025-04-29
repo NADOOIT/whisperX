@@ -7,6 +7,7 @@ import librosa
 from typing import Optional, Dict, Any, Union
 
 SAMPLE_RATE = 16000
+N_SAMPLES = 480000  # 30 seconds of audio at 16kHz
 
 class AudioProcessor:
     """Audio processing utilities."""
@@ -35,6 +36,8 @@ class AudioProcessor:
         Returns:
             Audio as numpy array
         """
+        if (start is not None and start < 0) or (duration is not None and duration < 0):
+            raise RuntimeError("start and duration must be non-negative")
         try:
             # Load audio
             audio, sr = torchaudio.load(file_path)
@@ -53,9 +56,23 @@ class AudioProcessor:
             
             # Trim if requested
             if start is not None or duration is not None:
-                start_sample = int(start * self.sample_rate) if start else None
-                end_sample = int((start + duration) * self.sample_rate) if start and duration else None
-                audio = audio[start_sample:end_sample]
+                audio_len = len(audio)
+                if start is not None and duration is not None:
+                    start_sample = int(start * self.sample_rate)
+                    end_sample = int((start + duration) * self.sample_rate)
+                    if start_sample >= audio_len or end_sample > audio_len:
+                        raise RuntimeError("start or duration out of bounds")
+                    audio = audio[start_sample:end_sample]
+                elif start is not None:
+                    start_sample = int(start * self.sample_rate)
+                    if start_sample >= audio_len:
+                        raise RuntimeError("start out of bounds")
+                    audio = audio[start_sample:]
+                elif duration is not None:
+                    end_sample = int(duration * self.sample_rate)
+                    if end_sample > audio_len:
+                        raise RuntimeError("duration out of bounds")
+                    audio = audio[:end_sample]
             
             return audio
             
@@ -168,3 +185,49 @@ def load_audio(
     """Convenience function to load audio file."""
     processor = AudioProcessor()
     return processor.load(file_path, start, duration)
+
+
+def log_mel_spectrogram(
+    audio: Union[str, np.ndarray, torch.Tensor],
+    n_mels: int = 80,
+    padding: int = 0,
+    device: Optional[Union[str, torch.device]] = None
+) -> torch.Tensor:
+    """Create a log-mel spectrogram from an audio file or waveform.
+    
+    Args:
+        audio: Path to audio file or audio waveform
+        n_mels: Number of mel filterbanks
+        padding: Number of samples to pad
+        device: Device to use for processing
+        
+    Returns:
+        Log-mel spectrogram
+    """
+    if isinstance(audio, str):
+        audio = load_audio(audio)
+        
+    if isinstance(audio, np.ndarray):
+        audio = torch.from_numpy(audio)
+    
+    if padding > 0:
+        audio = torch.nn.functional.pad(audio, (0, padding))
+    
+    if device is not None:
+        audio = audio.to(device)
+    
+    window = torch.hann_window(400).to(audio.device)
+    stft = torch.stft(audio, 400, 160, window=window, return_complex=True)
+    magnitudes = stft.abs() ** 2
+    
+    mel_filters = torch.from_numpy(
+        librosa.filters.mel(sr=SAMPLE_RATE, n_fft=400, n_mels=n_mels)
+    ).to(audio.device)
+    
+    mel_spec = mel_filters @ magnitudes
+    
+    log_spec = torch.clamp(mel_spec, min=1e-10).log10()
+    log_spec = torch.maximum(log_spec, log_spec.max() - 8.0)
+    log_spec = (log_spec + 4.0) / 4.0
+    
+    return log_spec

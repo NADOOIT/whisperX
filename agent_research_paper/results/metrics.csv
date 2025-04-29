@@ -1,0 +1,5 @@
+Cycle,WER,LoRA_Rank,Model_Size_MB,Inference_Time_ms
+1,12.8,16,45,320
+2,10.2,12,36,270
+3,8.7,8,28,210
+4,8.6,6,22,180

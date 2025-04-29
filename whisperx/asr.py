@@ -32,6 +32,12 @@ class WhisperModel(faster_whisper.WhisperModel):
     Currently only works in non-timestamp mode and fixed prompt for all samples in batch.
     This version is compatible with faster-whisper 1.1.0.
     '''
+    
+    def __init__(self, model_size_or_path: str, device: str = None, compute_type: str = "float16", 
+                 download_root: str = None, local_files_only: bool = False, **kwargs):
+        super().__init__(model_size_or_path, device=device, compute_type=compute_type, 
+                        download_root=download_root, local_files_only=local_files_only, **kwargs)
+        self.device = device or "cpu"
 
     def generate_segment_batched(self, features: np.ndarray, tokenizer: faster_whisper.tokenizer.Tokenizer, options: faster_whisper.transcribe.TranscriptionOptions, encoder_output = None):
         batch_size = features.shape[0]
@@ -81,6 +87,10 @@ class WhisperModel(faster_whisper.WhisperModel):
         if len(features.shape) == 2:
             features = np.expand_dims(features, 0)
         
+        # Ensure array is contiguous in memory before conversion
+        if not features.flags['C_CONTIGUOUS']:
+            features = np.ascontiguousarray(features)
+
         features = ctranslate2.StorageView.from_array(features)
         return self.model.encode(features, to_cpu=to_cpu)
 
@@ -121,7 +131,7 @@ class ASRModel:
                    download_root: str, local_files_only: bool,
                    cpu_threads: int = 4) -> "WhisperModel":
         """Load the model with appropriate device settings."""
-        model = faster_whisper.WhisperModel(
+        model = WhisperModel(
             model_name,
             device=self._ct2_device,
             compute_type=compute_type,

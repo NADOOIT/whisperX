@@ -1,0 +1,8 @@
+torch>=1.12
+transformers>=4.15
+datasets>=2.0
+numpy>=1.21
+matplotlib>=3.4
+soundfile>=0.10
+scipy>=1.7
+peft>=0.2

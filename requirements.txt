@@ -2,9 +2,10 @@ torch>=2
 torchaudio>=2
 cmake>=3.12
 pybind11>=2.6.0
-ctranslate2 @ git+https://github.com/NADOOIT/CTranslate2.git@surfer#egg=ctranslate2
+# ctranslate2 @ git+https://github.com/NADOOIT/CTranslate2.git@surfer#egg=ctranslate2
 git+https://github.com/NADOOIT/faster-whisper.git@master
 transformers
 pandas
 setuptools>=65
 nltk
+httpx==0.25.2

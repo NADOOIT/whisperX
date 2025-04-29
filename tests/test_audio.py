@@ -20,7 +20,7 @@ def test_audio_dir():
 def sample_audio_file(test_audio_dir):
     """Create a sample audio file for testing."""
     duration = 2.0  # seconds
-    t = np.linspace(0, duration, int(SAMPLE_RATE * duration))
+    t = np.linspace(0, duration, int(SAMPLE_RATE * duration), endpoint=False)
     audio = np.sin(2 * np.pi * 440 * t)  # 440 Hz sine wave
     
     file_path = test_audio_dir / "test_audio.wav"
@@ -36,7 +36,7 @@ def sample_audio_file(test_audio_dir):
 def noisy_audio_file(test_audio_dir):
     """Create a noisy audio file for testing."""
     duration = 2.0  # seconds
-    t = np.linspace(0, duration, int(SAMPLE_RATE * duration))
+    t = np.linspace(0, duration, int(SAMPLE_RATE * duration), endpoint=False)
     signal = np.sin(2 * np.pi * 440 * t)  # 440 Hz sine wave
     noise = np.random.normal(0, 0.1, len(t))
     audio = signal + noise
@@ -54,7 +54,7 @@ def noisy_audio_file(test_audio_dir):
 def stereo_audio_file(test_audio_dir):
     """Create a stereo audio file for testing."""
     duration = 2.0  # seconds
-    t = np.linspace(0, duration, int(SAMPLE_RATE * duration))
+    t = np.linspace(0, duration, int(SAMPLE_RATE * duration), endpoint=False)
     left = np.sin(2 * np.pi * 440 * t)
     right = np.sin(2 * np.pi * 880 * t)
     audio = np.vstack([left, right])

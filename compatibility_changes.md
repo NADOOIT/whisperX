@@ -53,6 +53,11 @@ This document tracks the necessary changes to make WhisperX compatible with fast
    - Old: Required manual token filtering and custom batch decoding
    - New: Provides streamlined batch decoding through tokenizer
 
+3. Memory Layout Requirements:
+   - Added contiguity check and conversion for numpy arrays
+   - Ensures compatibility with CTranslate2's StorageView
+   - Handles non-contiguous arrays automatically
+
 ## Notes
 - Most changes were confined to the core WhisperModel class
 - Many components are independent of faster-whisper version:
@@ -61,3 +66,4 @@ This document tracks the necessary changes to make WhisperX compatible with fast
   - Diarization uses pyannote.audio
 - Timestamp handling code retained for compatibility with other components
 - No breaking changes to the public API
+- Added memory layout handling for robust array conversion

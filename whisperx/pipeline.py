@@ -122,6 +122,38 @@ class WhisperXPipeline:
             self.memory_manager.cleanup()
             raise RuntimeError(f"Transcription failed: {str(e)}")
     
+    def batch_transcribe(self, audio_files: List[str], **kwargs) -> List[Dict[str, Any]]:
+        """
+        Transcribe multiple audio files in parallel.
+        
+        Args:
+            audio_files: List of paths to audio files
+            **kwargs: Additional arguments passed to transcribe method
+        
+        Returns:
+            List of transcription results, one for each input file
+        """
+        import soundfile as sf
+        from concurrent.futures import ThreadPoolExecutor
+        
+        def process_file(file_path: str) -> Dict[str, Any]:
+            try:
+                # Load audio file
+                audio, _ = sf.read(file_path)
+                # Transcribe with existing method
+                return self.transcribe(audio, **kwargs)
+            except Exception as e:
+                return {
+                    "error": str(e),
+                    "file": file_path
+                }
+        
+        # Process files in parallel using thread pool
+        with ThreadPoolExecutor(max_workers=self.config.batch_size) as executor:
+            results = list(executor.map(process_file, audio_files))
+        
+        return results
+    
     def _process_streaming(self, audio: np.ndarray) -> Dict[str, Any]:
         """Process audio in streaming mode."""
         self.streaming_processor.start_streaming()

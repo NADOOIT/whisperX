@@ -31,6 +31,9 @@ class DiarizationPipeline:
                 "https://hf.co/settings/tokens to create your access token."
             )
             
+        # Ensure device is a torch.device instance
+        if isinstance(device, str):
+            device = torch.device(device)
         try:
             self.model = Pipeline.from_pretrained(
                 model_name,

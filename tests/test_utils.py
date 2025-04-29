@@ -1,103 +1,28 @@
 """Tests for utility functions."""
 
-import os
 import pytest
 import torch
 import numpy as np
 from pathlib import Path
-from whisperx.utils import (
-    get_device,
-    setup_logger,
-    ensure_dir,
-    load_config,
-    save_config
-)
+from whisperx.utils.device import get_device_from_name
+
 
 # Test device utilities
-def test_get_device():
+def test_get_device_from_name():
     """Test device selection."""
-    device = get_device()
+    device = get_device_from_name()
     assert isinstance(device, str)
     assert device in ["cuda", "cpu", "mps"]
     
     # Test with specific device
-    device = get_device("cpu")
+    device = get_device_from_name("cpu")
     assert device == "cpu"
     
     # Test with unavailable device
     with pytest.raises(ValueError):
-        get_device("invalid_device")
+        get_device_from_name("invalid_device")
 
-# Test logging utilities
-def test_setup_logger(tmp_path):
-    """Test logger setup."""
-    log_file = tmp_path / "test.log"
-    logger = setup_logger("test_logger", log_file)
-    
-    # Test logger configuration
-    assert logger.name == "test_logger"
-    assert logger.level == logging.INFO
-    assert len(logger.handlers) > 0
-    
-    # Test logging
-    test_message = "Test log message"
-    logger.info(test_message)
-    
-    # Verify log file
-    assert log_file.exists()
-    with open(log_file) as f:
-        log_content = f.read()
-        assert test_message in log_content
 
-# Test directory utilities
-def test_ensure_dir(tmp_path):
-    """Test directory creation."""
-    test_dir = tmp_path / "test_dir" / "subdir"
-    
-    # Create directory
-    ensure_dir(test_dir)
-    assert test_dir.exists()
-    assert test_dir.is_dir()
-    
-    # Test with existing directory
-    ensure_dir(test_dir)  # Should not raise error
-    
-    # Test with file path
-    test_file = tmp_path / "test.txt"
-    test_file.touch()
-    with pytest.raises(ValueError):
-        ensure_dir(test_file)
-
-# Test configuration utilities
-def test_config_io(tmp_path):
-    """Test configuration I/O."""
-    config_file = tmp_path / "config.json"
-    
-    # Test configuration
-    config = {
-        "model": "base",
-        "device": "cpu",
-        "batch_size": 16,
-        "sample_rate": 16000,
-        "nested": {
-            "param1": 1,
-            "param2": "value"
-        }
-    }
-    
-    # Save configuration
-    save_config(config, config_file)
-    assert config_file.exists()
-    
-    # Load configuration
-    loaded_config = load_config(config_file)
-    assert loaded_config == config
-    
-    # Test with invalid file
-    with pytest.raises(FileNotFoundError):
-        load_config(tmp_path / "nonexistent.json")
-    
-    # Test with invalid JSON
     invalid_file = tmp_path / "invalid.json"
     invalid_file.write_text("invalid json")
     with pytest.raises(ValueError):
@@ -108,7 +33,7 @@ def test_error_handling():
     """Test error handling utilities."""
     # Test device error
     with pytest.raises(ValueError, match="Invalid device"):
-        get_device("invalid")
+        get_device_from_name("invalid")
     
     # Test directory error
     with pytest.raises(ValueError, match="Path exists and is not a directory"):

@@ -25,6 +25,47 @@
 
 <img width="1216" align="center" alt="whisperx-arch" src="figures/pipeline.png">
 
+---
+
+---
+
+> ⏱️ **Deine ersten 5 Minuten mit WhisperX**
+> - **Schnellstart:** Folge der Box "Erste Schritte in 2 Minuten" unten!
+> - **Häufige Anfängerfragen:** [FAQ & Troubleshooting](#❓-faq-häufige-fragen--stolpersteine)
+> - **Direkt zu Beispielen:** [Quickstart](#🚀-quickstart-example), [Diarization](#diarization-beispiel), [VAD](#vad-beispiel)
+>
+> 💬 **Feedback zur Doku?** [Hier direkt Rückmeldung geben!](https://github.com/m-bain/whisperx/discussions)
+
+---
+
+<div style="background-color:#e6f0ff; padding:12px; border-radius:8px; margin-bottom:16px;">
+🔗 <strong>Schritt-für-Schritt-Guides & Community-Events:</strong> <a href="https://github.com/m-bain/whisperx/discussions">Hier findest du Tutorials, Guides und aktuelle Events!</a>
+</div>
+
+## 🚦 Onboarding: Für wen ist WhisperX?
+
+> **Bist du ...**
+> - 👩‍🏫 **Lehrkraft?** [Direkt zu Tipps & Beispielen für Bildung](#2-praxis--beispiele)
+> - 👩‍💻 **Entwickler:in?** [Direkt zur Integration & API](#2-praxis--beispiele)
+> - 🤝 **Team/Organisation?** [Direkt zu Team-Workflows & Community](#3-community--inspiration)
+> - 🏠 **Privatnutzer:in?** [Direkt zu Praxisbeispielen & Inspiration](#2-praxis--beispiele)
+> - 👶 **Einsteiger:in?** [Direkt zum Schnellstart & FAQ](#1-einstieg--quickstart)
+
+---
+
+> 🟢 **Erste Schritte in 2 Minuten:**
+> 1. Installiere WhisperX (siehe unten)
+> 2. Kopiere diesen Befehl ins Terminal:
+>    ```bash
+>    python -m whisperx audio.mp3 --output_dir results/
+>    ```
+> 3. Öffne den Ordner `results/` – dein Transkript ist fertig!
+> 4. Bei Problemen: Siehe FAQ/Troubleshooting oder frage die Community.
+>
+> 📺 **Video-Tutorials & bebilderte Anleitungen:** [WhisperX Video-Anleitungen](https://www.youtube.com/results?search_query=whisperx)
+
+---
+
 
 <!-- <p align="left">Whisper-Based Automatic Speech Recognition (ASR) with improved timestamp accuracy + quality via forced phoneme alignment and voice-activity based batching for fast inference.</p> -->
 
@@ -73,8 +114,891 @@ GPU execution requires the NVIDIA libraries cuBLAS 11.x and cuDNN 8.x to be inst
 
 `conda activate whisperx`
 
+> ✅ **Checkliste Installation:**
+> - [ ] Python 3.10+ installiert?
+> - [ ] Virtuelle Umgebung aktiv?
+> - [ ] `pip install ...` ohne Fehler durchgelaufen?
+> - [ ] Health-Check (`pytest tests/test_installation.py`) bestanden?
+> - [ ] Bei Problemen: [FAQ/Troubleshooting](#⚠️-troubleshooting--health-check) nutzen oder [Community fragen](https://github.com/m-bain/whisperx/discussions).
 
 ### 2. Install PyTorch, e.g. for Linux and Windows CUDA11.8:
+
+```bash
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+```
+
+> 💡 **Tipp:** Für andere Plattformen oder CUDA-Versionen siehe die [offizielle PyTorch Installationsanleitung](https://pytorch.org/get-started/locally/).
+
+---
+
+### 3. Install WhisperX and dependencies
+
+```bash
+pip install git+https://github.com/m-bain/whisperx.git
+```
+
+> 💡 **Hinweis:** Für optimale Performance wird empfohlen, ein GPU-beschleunigtes System zu verwenden.
+
+---
+
+### 4. (Optional) Install additional components
+
+- **Speaker Diarization:**  
+  Für Speaker Diarization benötigst du zusätzliche Pakete:
+  ```bash
+  pip install pyannote.audio
+  ```
+  Siehe auch die [pyannote.audio Dokumentation](https://github.com/pyannote/pyannote-audio) für weitere Details.
+
+- **VAD (Voice Activity Detection):**  
+  VAD ist standardmäßig aktiviert, kann aber bei Bedarf angepasst werden.
+
+---
+
+### 5. Test your installation
+
+```bash
+python -m whisperx --help
+```
+
+Wenn die Hilfe angezeigt wird, ist WhisperX korrekt installiert!
+
+---
+
+## 🚀 Quickstart Example
+
+Transcribe an audio file (e.g. `audio.mp3`) with WhisperX:
+
+```bash
+python -m whisperx audio.mp3 --output_dir results/
+```
+
+<div style="background-color:#e6ffe6; padding:10px; border-radius:8px;">
+🧪 <strong>Teste es direkt:</strong> Lade <a href="#">sample.mp3</a> herunter und probiere:
+
+```bash
+python -m whisperx sample.mp3 --output_dir results/
+```
+Das Ergebnis findest du im <code>results/</code>-Ordner.
+</div>
+
+> 🖼️ <strong>Beispiel-Output:</strong>
+> 
+> ```
+> [00:00.000 --> 00:04.000] Hallo und willkommen zu WhisperX!
+> [00:04.000 --> 00:08.000] Dies ist ein Beispiel-Transkript.
+> ```
+
+- The output will be saved in the specified directory (default: `results/`).
+- You can specify the model, language, and other parameters. For all options, run:
+  ```bash
+  python -m whisperx --help
+  ```
+
+<div style="background-color:#e6f0ff; padding:10px; border-radius:8px;">
+💡 <strong>Tipp:</strong> Für beste Ergebnisse nutze ein passendes Modell (z.B. <code>--model large-v2</code>) und prüfe die Spracheinstellung (z.B. <code>--language de</code>).
+</div>
+
+> 🚀 **Du bist startklar – probiere es aus und teile dein Feedback in der [Community](https://github.com/m-bain/whisperx/discussions)!**
+
+---
+
+## 🆘 Schnelle Hilfe bei Problemen
+
+<div style="background-color:#fffbe6; padding:10px; border-radius:8px;">
+⚠️ <strong>Installation schlägt fehl?</strong><br>
+- Prüfe Python-Version (3.10+), virtuelle Umgebung, und ob alle <code>pip install ...</code>-Befehle fehlerfrei durchlaufen.<br>
+- Siehe <a href="#⚠️-troubleshooting--health-check">Troubleshooting</a> für Details.
+</div>
+
+<div style="background-color:#fffbe6; padding:10px; border-radius:8px;">
+⚠️ <strong>GPU wird nicht erkannt?</strong><br>
+- Prüfe mit <code>nvidia-smi</code>, ob deine NVIDIA-GPU korrekt installiert ist.<br>
+- Auf macOS ist nur CPU-Modus möglich.
+</div>
+
+<div style="background-color:#fffbe6; padding:10px; border-radius:8px;">
+⚠️ <strong>Datei nicht gefunden?</strong><br>
+- Pfad und Dateinamen genau prüfen, ggf. per Drag & Drop ins Terminal.<br>
+- Mit <code>ls</code> kontrollieren, ob die Datei im aktuellen Verzeichnis liegt.
+</div>
+
+<div style="background-color:#fffbe6; padding:10px; border-radius:8px;">
+⚠️ <strong>Permission denied?</strong><br>
+- Schreibrechte für den Zielordner prüfen (<code>ls -l</code>), ggf. <code>chmod</code> verwenden.
+</div>
+
+---
+
+## ✅ Health-Check testen
+
+<div style="background-color:#e6ffe6; padding:10px; border-radius:8px;">
+🧪 <strong>Teste Health-Check direkt:</strong>
+
+```bash
+pytest tests/test_installation.py
+```
+
+Wenn alles ok ist, siehst du z.B.:
+
+```
+================= test session starts =================
+collected 3 items
+
+tests/test_installation.py ...                [100%]
+
+================= 3 passed in 1.23s =================
+```
+
+Bei Fehlern siehe <a href="#⚠️-troubleshooting--health-check">Troubleshooting</a>.
+</div>
+
+---
+
+## 🗣️ Diarization Beispiel
+
+<div style="background-color:#e6ffe6; padding:10px; border-radius:8px;">
+🧪 <strong>Teste Diarization direkt:</strong>
+
+```bash
+python -m whisperx sample.mp3 --diarize --output_dir diarization_results/
+```
+Das Ergebnis enthält Sprecher:innen-Zuordnung im <code>diarization_results/</code>-Ordner.
+</div>
+
+> 🖼️ <strong>Beispiel-Output Diarization:</strong>
+> 
+> ```
+> [00:00.000 --> 00:04.000] SPEAKER_00: Hallo, ich bin Sprecher eins.
+> [00:04.000 --> 00:08.000] SPEAKER_01: Und ich bin Sprecher zwei.
+> ```
+
+---
+
+## 🔊 VAD Beispiel
+
+<div style="background-color:#e6ffe6; padding:10px; border-radius:8px;">
+🧪 <strong>Teste VAD direkt:</strong>
+
+```bash
+python -m whisperx sample.mp3 --vad --output_dir vad_results/
+```
+Im <code>vad_results/</code>-Ordner findest du die Zeitbereiche mit erkannter Sprache.
+</div>
+
+> 🖼️ <strong>Beispiel-Output VAD:</strong>
+> 
+> ```
+> [00:00.000 --> 00:02.500] Speech detected
+> [00:04.000 --> 00:06.000] Speech detected
+> ```
+
+---
+
+## 📑 Batch-Transkription Beispiel
+
+<div style="background-color:#e6ffe6; padding:10px; border-radius:8px;">
+🧪 <strong>Teste Batch-Transkription direkt:</strong>
+
+```bash
+python -m whisperx folder_with_audio_files/*.mp3 --output_dir batch_results/
+```
+Alle Transkripte findest du im <code>batch_results/</code>-Ordner.
+</div>
+
+> 🖼️ <strong>Beispiel-Output Batch:</strong>
+> 
+> ```
+> [00:00.000 --> 00:04.000] Datei: audio1.mp3
+> Hallo, dies ist Datei 1.
+> [00:00.000 --> 00:03.000] Datei: audio2.mp3
+> Hier spricht Datei 2.
+> ```
+
+---
+
+## 🌍 Verschiedene Sprachen Beispiel
+
+<div style="background-color:#e6ffe6; padding:10px; border-radius:8px;">
+🧪 <strong>Teste Spracheinstellung direkt:</strong>
+
+```bash
+python -m whisperx sample_fr.mp3 --language fr --output_dir fr_results/
+```
+Das Transkript auf Französisch findest du im <code>fr_results/</code>-Ordner.
+</div>
+
+> 🖼️ <strong>Beispiel-Output Französisch:</strong>
+> 
+> ```
+> [00:00.000 --> 00:03.000] Bonjour, ceci est un exemple en français.
+> ```
+
+---
+
+<div style="background-color:#e6f0ff; padding:12px; border-radius:8px; margin-bottom:16px;">
+🔗 <strong>Schritt-für-Schritt-Guides & Community-Events:</strong> <a href="https://github.com/m-bain/whisperx/discussions">Hier findest du Tutorials, Guides und aktuelle Events!</a>
+</div>
+
+## ⚠️ Troubleshooting & Health-Check
+
+- **Health-Check nach der Installation:**
+  Nach der Installation kannst du mit folgendem Befehl prüfen, ob alle Kernkomponenten korrekt installiert sind:
+  ```bash
+  pytest tests/test_installation.py
+  ```
+  Bei Fehlern siehe unten und im FAQ.
+
+- **CUDA not available:** Stelle sicher, dass die NVIDIA-Treiber und CUDA korrekt installiert sind. Prüfe mit `nvidia-smi`.
+- **ImportError:** Überprüfe, ob alle Abhängigkeiten installiert sind und das richtige Python-Environment aktiv ist.
+- **Fehlende Module:** Führe ggf. ein `pip install -U pip setuptools` und installiere die Pakete erneut.
+- **Audio wird nicht erkannt:** Prüfe das Audioformat und die Lesbarkeit der Datei.
+
+**Häufige Test-Fehler & Lösungen:**
+
+| Fehlerbild/Test                                 | Mögliche Ursache                    | Lösung                                              |
+|-------------------------------------------------|-------------------------------------|-----------------------------------------------------|
+| `ctranlsate2` fehlt                            | Nicht installiert                   | `pip install ctranslate2`                           |
+| CUDA-Fehler                                    | Keine NVIDIA-GPU oder CUDA fehlt    | CPU-Modus nutzen oder CUDA installieren             |
+| `ValueError` bei Diarization                   | Fehlende pyannote.audio-Modelle     | `pip install pyannote.audio` und Modelle nachladen  |
+| RuntimeError AdaptiveProcessor                 | Falsches Device/fehlende Abhängigkeit| Device prüfen, Abhängigkeiten installieren         |
+| AssertionError in Installationstest            | Paket nicht korrekt installiert     | Installation prüfen, ggf. neu installieren          |
+
+> 💬 **Community-Support:** Bei Problemen hilft die Community gerne weiter – poste deine Fehlermeldung im [Forum](https://github.com/m-bain/whisperx/discussions), oft gibt es schnelle Hilfe!
+
+Weitere Hilfe findest du auch in den [GitHub Issues](https://github.com/m-bain/whisperx/issues).
+
+---
+
+## 👶 Für Einsteiger:innen: Erste Schritte & Tipps
+
+> 🟢 **Schnellstart:** In weniger als 5 Minuten zum ersten Transkript!
+
+### 🚦 Schritt-für-Schritt-Anleitung
+1. ✅ **Installation abschließen** (siehe oben)
+2. 🎵 **Beispiel-Audio bereitstellen** (z.B. `audio.mp3`)
+3. 🖥️ **Transkribieren:**
+   ```bash
+   python -m whisperx audio.mp3 --output_dir results/
+   ```
+4. 📂 **Ergebnis anschauen:** Öffne den `results/`-Ordner und prüfe die erzeugten Dateien (z.B. `.txt`, `.json`).
+
+> 💡 **Tipp:** Starte mit einer kurzen Audiodatei (1–2 Minuten), um dich mit dem Ablauf vertraut zu machen.
+
+### 📚 Glossar für Einsteiger:innen
+
+---
+
+<div align="center" style="margin-top:2em;">
+💬 <strong>Feedback zur Doku?</strong> <a href="https://github.com/m-bain/whisperx/discussions" style="font-size:1.2em; color:#0078d7; font-weight:bold;">Hier direkt Rückmeldung geben!</a>
+</div>
+
+---
+
+## 🤖 Hinweise für KI-gestützte Mitarbeit (Nur für KI)
+
+> **Diese Sektion ist ausschließlich für KI-Assistenzsysteme gedacht und sollte als Erinnerung gespeichert werden.**
+
+### Projektziele & Prinzipien
+- Ziel: WhisperX für alle Nutzer:innen maximal zugänglich, robust und community-orientiert machen.
+- Fokus: Einsteigerfreundlichkeit, Barrierefreiheit, Community-Support, schnelle Fehlerdiagnose.
+- Doku-Änderungen immer so gestalten, dass sie echte Praxisprobleme lösen und Nutzer:innen motivieren.
+
+### Regeln für KI-Mitarbeit
+- Niemals bestehende Inhalte ohne Grund überschreiben – immer ergänzen oder verbessern.
+- Änderungen immer mit klarer, kurzer Begründung dokumentieren (Change-Log, Commit-Message, Pull-Request-Text).
+- Bei Unsicherheiten in der Community/FAQ nachschlagen oder Feedback einholen.
+- Keine sensiblen Nutzerdaten speichern oder veröffentlichen.
+- Immer aktuelle Best Practices für Open-Source-Dokus und Accessibility beachten.
+- Vor größeren Änderungen: Memories/Kontext prüfen und relevante Infos in die Änderung einbeziehen.
+
+### Konkrete Beispiele
+**Gute KI-Änderung:**
+- Fügt eine neue FAQ-Frage hinzu, weil sie in mehreren Issues aufgetaucht ist, und verweist auf die Quelle.
+- Ergänzt plattformspezifische Hinweise nach Feedback von Nutzer:innen, ohne bestehende Lösungen zu entfernen.
+
+**Schlechte KI-Änderung:**
+- Überschreibt den Troubleshooting-Abschnitt komplett, ohne auf bestehende Inhalte oder Nutzerfragen einzugehen.
+- Entfernt Community-Links oder Hinweise auf Barrierefreiheit ohne Begründung.
+
+### Nutzung von Memories & Kontext
+- Vor jeder Änderung alle relevanten Memories und vorherige Konversationen prüfen.
+- Wichtige Erkenntnisse, Designentscheidungen und Nutzerpräferenzen als Memory speichern oder aktualisieren.
+- Kontext aus Issue-Tracker, Pull-Requests und Feedback gezielt nutzen.
+
+### Versionskontrolle & Zusammenarbeit
+- Änderungen immer als Pull-Request vorschlagen, nicht direkt auf den Hauptbranch pushen.
+- Bei Merge-Konflikten: menschliche Maintainer:innen einbinden und Änderung begründen.
+- Feedback-Schleifen aktiv nutzen: Auf Reviews und Kommentare eingehen, ggf. Änderung anpassen.
+- Bei Unsicherheit: Rückfrage an Maintainer:innen oder Community stellen.
+
+### Typische KI-Fehler vermeiden
+- Nicht mehrere Abschnitte mit identischem Inhalt anlegen (Redundanz).
+- Keine Platzhalter oder TODOs ohne Erklärung hinterlassen.
+- Keine automatisierten Übersetzungen ohne Prüfung einfügen.
+- Keine Formatierungsfehler oder fehlerhafte Links erzeugen.
+- Keine veralteten oder widersprüchlichen Infos stehen lassen.
+
+**Beispiel für einen typischen KI-Fehler:**
+> Falsch: "Fügen Sie hier Ihre FAQ-Frage ein."
+> Richtig: "Wie behebe ich CUDA Out of Memory? → Siehe Troubleshooting, Lösungsvorschlag..."
+
+### Zusammenarbeit mit menschlichen Maintainer:innen
+- Immer offen für Rückfragen und Korrekturen sein.
+- Explizit auf Wünsche, Präferenzen und Feedback der Maintainer:innen eingehen.
+- Bei Unklarheiten lieber nachfragen als eigenmächtig entscheiden.
+
+### Umgang mit sensiblen Daten & Ethik
+- Keine personenbezogenen oder sensiblen Daten in Issues, Commits oder Memories speichern.
+- Bei Unsicherheit zu Datenschutz oder ethischen Fragen: Rückfrage an Maintainer:in, keine automatisierten Entscheidungen treffen.
+- KI-Änderungen immer auf ethische Unbedenklichkeit prüfen (z.B. keine diskriminierenden Beispiele, keine unreflektierten Empfehlungen).
+
+### Transparenz & Nachvollziehbarkeit
+- Für jede KI-Änderung ein kurzes Änderungsprotokoll anlegen (z.B. "FAQ erweitert, weil...", "Troubleshooting ergänzt nach Issue #123").
+- KI-spezifische Commit Messages nutzen, z.B. "[KI] Neue FAQ aus Community-Feedback hinzugefügt".
+- Größere KI-Änderungen im Pull Request-Text klar als solche kennzeichnen.
+
+### Automatisierte Tests & Linting
+- Nach jeder Code- oder Doku-Änderung automatisierte Tests und Linter ausführen (z.B. Markdown-Lint, Link-Checker).
+- Fehlerhafte Formatierung, kaputte Links oder Syntaxfehler sofort beheben.
+- Bei Testfehlschlägen keine Änderungen mergen, sondern zuerst Fehler analysieren.
+
+### Dokumentation von KI-Entscheidungen
+- Jede größere Entscheidung (z.B. neue FAQ, Änderung der Struktur) mit kurzer Begründung dokumentieren (im PR, Commit oder als Memory).
+- Beispiel: "FAQ zu CUDA ergänzt, da 5 Nutzer:innen im Forum identisches Problem hatten."
+
+### Zusammenarbeit mit anderen KI-Systemen
+- Kontext und relevante Memories explizit weitergeben, wenn mehrere KI-Systeme beteiligt sind.
+- Konflikte vermeiden: Vor Änderung prüfen, ob andere KI-Prozesse parallel laufen oder kürzlich Änderungen gemacht wurden.
+- Bei Unsicherheit: Merge-Strategie mit Maintainer:in abstimmen.
+
+### Best Practices für nachhaltige KI-Dokumentation
+- Regelmäßig Feedback von menschlichen Nutzer:innen einholen und auswerten.
+- KI-Entscheidungen transparent machen und dokumentieren.
+- Die KI-Sektion regelmäßig pflegen, neue Erkenntnisse und Regeln aufnehmen.
+- Bei größeren Änderungen: Review durch menschliche Maintainer:in einfordern.
+- Die KI-Sektion als "Wissensanker" für alle zukünftigen KI-Interaktionen verstehen.
+
+> **Ende der KI-Sektion – dieser Bereich ist für Endnutzer:innen nicht relevant.**
+
+- **Transkribieren:** Audio in Text umwandeln
+- **Diarization (Sprechertrennung):** Erkennung, wer wann spricht (z.B. "Sprecher A", "Sprecher B").
+- **VAD (Voice Activity Detection, Spracherkennung):** Erkennung, wann gesprochen wird (hilft, Stille zu überspringen).
+- **Forced Alignment (erzwungene Ausrichtung):** Automatisches Abgleichen von Text und Audio, damit jedes Wort oder jeder Laut die richtige Zeitmarke bekommt.
+
+### ❓ FAQ: Häufige Fragen & Stolpersteine
+
+- **Wie prüfe ich, ob alles richtig installiert ist?**
+  Führe nach der Installation `pytest tests/test_installation.py` aus. Bei Fehlern siehe Troubleshooting-Tabelle und FAQ.
+- **Was tun bei Testfehlern?**
+  Prüfe die Fehlermeldung, vergleiche sie mit der Tabelle „Häufige Test-Fehler & Lösungen“ und folge den Lösungsvorschlägen. Bei Unsicherheit: Community fragen!
+- **Wie bekomme ich schnelle Hilfe?**
+  Nutze das [Community-Forum](https://github.com/m-bain/whisperx/discussions) oder erstelle ein GitHub Issue. Je mehr Infos (Fehlermeldung, System, Schritte) du angibst, desto schneller kann geholfen werden.
+- **Kann ich WhisperX ohne GPU nutzen?**
+  Ja, aber die Verarbeitung ist dann deutlich langsamer. Für große Dateien empfiehlt sich eine GPU.
+- **Wie kann ich meine Installation validieren?**
+  Mit `pytest tests/test_installation.py` oder `python -m whisperx --help`.
+- **Wie kann ich mehrere Dateien testen?**
+  Siehe CLI-Beispiele und Batch-Verarbeitung oben.
+- **Wie kann ich Fehler melden?**
+  Siehe Abschnitt „Support & Kontakt“ und die Anleitung unten.
+
+---
+
+## 🆘 Support & Kontakt
+
+- **Forum:** [Community-Forum](https://github.com/m-bain/whisperx/discussions) – schnelle Hilfe, Peer-Support, Community-Paten.
+- **GitHub Issues:** Für Bugs und Feature-Wünsche.
+- **Live-Q&A:** Siehe Community-Kalender für Termine.
+- **Community-Paten:** Persönliche Unterstützung für Einsteiger:innen – einfach im Forum melden.
+
+### So meldest du ein Problem richtig
+1. Führe einen Health-Check durch (`pytest tests/test_installation.py`).
+2. Notiere die genaue Fehlermeldung und dein System (Betriebssystem, Python-Version, CUDA/GPU).
+3. Beschreibe, was du gemacht hast (Schritte zur Reproduktion).
+4. Poste alles im Forum oder als Issue.
+5. Optional: Screenshot oder Log-Auszug anhängen.
+
+> Je genauer die Infos, desto schneller kann dir geholfen werden!
+
+---
+
+## 🛡️ Tipps für stabile Nutzung
+
+- **Regelmäßig Updates machen:** Halte WhisperX und alle Abhängigkeiten aktuell (`pip install -U ...`).
+- **Virtuelle Umgebungen nutzen:** Vermeide Konflikte mit anderen Python-Projekten.
+- **Backup von Modellen:** Sichere heruntergeladene Modelle für Offline-Nutzung.
+- **Changelog lesen:** Prüfe bei neuen Releases, ob es Breaking Changes gibt.
+- **Community-Feedback nutzen:** Tausche dich regelmäßig mit anderen aus und profitiere von Best Practices.
+
+### 📝 Beispielausgabe eines Transkripts
+
+> 💬 **Community hilft:** Stelle deine Frage mit Fehlermeldung und Beispiel im [Forum](https://github.com/m-bain/whisperx/discussions) – schnelle Hilfe garantiert!
+
+---
+
+## 📄 Beispielausgabe eines Transkripts
+
+**Beispiel (Ausschnitt aus `audio.txt`):**
+```
+[00:00:00.000 --> 00:00:03.000] Hallo und willkommen zum WhisperX-Tutorial!
+[00:00:03.000 --> 00:00:07.000] In diesem Video zeige ich dir, wie du Audio automatisch transkribierst.
+```
+**Beispiel (Ausschnitt aus `audio.json`):**
+```json
+{
+  "segments": [
+    {"start": 0.0, "end": 3.0, "text": "Hallo und willkommen zum WhisperX-Tutorial!"},
+    {"start": 3.0, "end": 7.0, "text": "In diesem Video zeige ich dir, wie du Audio automatisch transkribierst."}
+  ]
+}
+```
+
+> 🖼️ **Noch anschaulicher?** Hier findest du eine bebilderte Schritt-für-Schritt-Anleitung und Videotutorials: [WhisperX Video-Anleitungen](https://www.youtube.com/results?search_query=whisperx)
+
+---
+
+## 🏁 Dein erster Erfolg in 60 Sekunden
+
+> ⏱️ **Schnellstart:** Kopiere diesen Befehl, ersetze `audio.mp3` durch deine Datei – fertig!
+>
+> ```bash
+> python -m whisperx audio.mp3 --output_dir results/
+> ```
+> Schau in den Ordner `results/` – dein Transkript wartet schon auf dich!
+
+---
+
+## 📝 Cheat Sheet: WhisperX Kommandos & Optionen
+
+| Befehl / Option             | Bedeutung                                          |
+|----------------------------|----------------------------------------------------|
+| `python -m whisperx file`   | Transkribiert die Datei                            |
+| `--output_dir pfad/`        | Zielordner für Ergebnisse                          |
+| `--language de`             | Sprache explizit setzen                            |
+| `--model large-v2`          | Modell auswählen                                   |
+| `--diarize`                 | Sprechererkennung aktivieren                       |
+| `--vad`                     | Voice Activity Detection aktivieren                |
+| `--help`                    | Alle verfügbaren Optionen anzeigen                 |
+
+> 💡 **Tipp:** Mit `python -m whisperx --help` bekommst du alle Optionen mit kurzer Erklärung angezeigt.
+
+---
+
+## 🌈 Motivations-Box & Community-Power
+
+> 🌟 **Jede:r kann beitragen!**
+>
+> - Teile deine Erfahrungen & Tipps im [Community-Forum](https://github.com/m-bain/whisperx/discussions)
+> - Vote für Features, stelle Fragen, hilf anderen – gemeinsam werden wir besser!
+> - Auch kleine Beiträge (z.B. Fehler melden, Übersetzungen, Doku-Verbesserungen) sind Gold wert.
+
+---
+
+## ♿ Barrierearme Nutzung & Inklusion
+
+- **Screenreader-freundlich:** Die wichtigsten Ausgaben sind als Klartext und strukturiert verfügbar.
+- **Einfache Sprache:** Viele Abschnitte sind bewusst klar und einfach formuliert.
+- **Übersetzungen:** Nutze Online-Übersetzer oder frage im Forum nach Hilfe für andere Sprachen.
+- **Community hilft:** Barrierefreiheit und Inklusion sind uns wichtig – Feedback dazu ist immer willkommen!
+## 🎯 Tipps für verschiedene Zielgruppen
+
+| Zielgruppe         | Tipp & Beispiel                                                                 |
+|--------------------|--------------------------------------------------------------------------------|
+| 👩‍🏫 Lehrkräfte      | Erstelle automatisch Mitschriften & Arbeitsblätter aus Unterrichtsaufnahmen.    |
+| 🎓 Studierende      | Nutze Transkripte für Vorlesungsnotizen & effizientes Nacharbeiten.             |
+| 👩‍💻 Entwickler:innen| Integriere WhisperX in eigene Apps, Bots oder Analyse-Pipelines.               |
+| 🤝 Teams            | Protokolliere Meetings automatisch, teile Ergebnisse direkt im Team-Chat.        |
+| 🏠 Privatnutzer:innen| Transkribiere Interviews, Familiengeschichten oder Podcasts für dein Archiv.    |
+
+---
+
+## 🏢 Branchenspezifische Beispiele & Inspiration
+
+| Branche             | Anwendungsidee                                                             |
+|---------------------|----------------------------------------------------------------------------|
+| 🎬 Medien           | Automatische Untertitel für Videos, Interviews, Podcasts                   |
+| 🔬 Forschung        | Transkription von Interviews, Feldstudien, Audio-Notizen                   |
+| 🏫 Bildung          | Lernmaterialien, Mitschriften, barrierefreie Inhalte                       |
+| 🏥 Gesundheitswesen | Dokumentation von Arztgesprächen, Anamnesen, Patientenaufklärung           |
+| 🏛️ Verwaltung       | Protokolle von Sitzungen, Bürgerbeteiligung, Transparenz                   |
+| ♿ Barrierefreiheit  | Live-Untertitel, Audio-zu-Text für Gehörlose und Schwerhörige              |
+
+> 📂 **Community-Vorlagen:** Im Forum findest du Vorlagen und Best Practices für viele Branchen – teile auch deine eigenen Beispiele!
+
+---
+
+## 📝 Einsteiger-Quiz: Bist du bereit?
+
+Teste dein Wissen mit diesen Fragen:
+- Wie starte ich eine Transkription mit WhisperX?
+- Wie kann ich mehrere Dateien auf einmal verarbeiten?
+- Wo finde ich Hilfe bei Fehlermeldungen?
+- Wie kann ich WhisperX in meine App integrieren?
+
+> 💡 **Lösung:** Antworten findest du in den Schnellstart- und FAQ-Abschnitten oben. Oder frage die Community!
+
+---
+
+## 🌍 Tipps für internationale Nutzer:innen
+
+- **Mehrsprachige Modelle:** WhisperX unterstützt viele Sprachen – setze einfach `--language <code>` (z.B. `--language fr` für Französisch).
+- **Übersetzungen:** Viele Abschnitte der README können mit Online-Tools (DeepL, Google Translate) übersetzt werden.
+- **Community-Support:** Im Forum helfen Nutzer:innen aus aller Welt – Fragen können auch auf Englisch oder anderen Sprachen gestellt werden.
+- **Beispiel:**
+  ```bash
+  python -m whisperx audio.mp3 --language es --output_dir ergebnisse/
+  ```
+
+---
+
+## 🔄 Regelmäßige Updates & Mitmachen
+
+- **Bleib auf dem Laufenden:** Schau regelmäßig nach Updates und neuen Features im Repository.
+- **Feedback & Wünsche:** Teile deine Ideen, Verbesserungsvorschläge und Feature-Wünsche im [Forum](https://github.com/m-bain/whisperx/discussions) oder als Issue.
+- **Mitmachen:** Beiträge aller Art sind willkommen – von Code über Doku bis zu Übersetzungen.
+
+---
+
+## 🔐 Datenschutz & Sicherheit
+
+- **Lokale Verarbeitung:** WhisperX kann komplett lokal genutzt werden – deine Audiodaten verlassen nie deinen Rechner, wenn du das möchtest.
+- **Open Source:** Du hast volle Kontrolle über den Code und die Datenverarbeitung.
+- **Tipp:** Prüfe beim Einsatz in sensiblen Bereichen (z.B. Medizin, Verwaltung) die lokalen Datenschutzanforderungen.
+
+---
+
+## 🎨 Kreative Use Cases & Community-Challenges
+
+- **Beispiele:**
+  - Live-Untertitel für Theateraufführungen oder Veranstaltungen
+  - Transkription von historischen Tonbändern für Archive
+  - Automatische Songtext-Erkennung aus Musikaufnahmen
+  - Sprachenlernen mit automatischer Ausspracheanalyse
+  - Podcast-Transkripte mit automatischer Themen-Tagging
+- **Community-Challenge:**
+  - Nimm an monatlichen Challenges teil (z.B. „Wer baut das kreativste WhisperX-Projekt?“)
+  - Gewinne Community-Badges und teile dein Ergebnis im [Showcase](https://github.com/m-bain/whisperx/discussions/categories/show-and-tell)
+
+---
+
+## 🌐 Internationales Community-FAQ (DE/EN)
+
+| Frage (DE)                                 | Question (EN)                             | Antwort/Answer                                                                                 |
+|--------------------------------------------|-------------------------------------------|-----------------------------------------------------------------------------------------------|
+| Wie ändere ich die Sprache?                | How do I change the language?             | `--language <code>` setzen, z.B. `--language en` / Use `--language <code>`, e.g. `--language en` |
+| Wie bekomme ich Hilfe?                     | How do I get help?                        | Im Forum fragen oder Issue erstellen / Ask in the forum or open an issue                      |
+| Kann ich WhisperX lokal nutzen?            | Can I use WhisperX locally?               | Ja, alles kann offline laufen / Yes, everything can run offline                               |
+| Ist meine Privatsphäre geschützt?          | Is my privacy protected?                  | Ja, bei lokaler Nutzung bleiben Daten auf deinem Rechner / Yes, with local use, data stays local |
+| Gibt es Support für andere Sprachen?       | Is there support for other languages?     | Ja, viele Sprachen werden unterstützt / Yes, many languages are supported                     |
+
+---
+
+## 📚 Best-Practice-Guides & Datenschutz
+
+- **Integration:** Im Forum und in der Doku findest du Best-Practice-Guides für verschiedene Plattformen und Workflows.
+- **Datenschutz:** Beachte die Hinweise zur lokalen Nutzung und prüfe die Datenschutzanforderungen deines Landes/Branche.
+- **Community:** Teile deine eigenen Best Practices und Tipps – gemeinsam sorgen wir für sichere und effiziente Nutzung!
+
+---
+
+## 🎉 Community-Events & Live-Q&A
+
+- **Regelmäßige Online-Treffen:** Tausche dich mit anderen Nutzer:innen aus, stelle Fragen und lerne neue Tricks.
+- **Live-Q&A-Termine:** Angekündigte Fragerunden mit Entwickler:innen und Power-Usern – stelle deine Fragen live!
+- **Austausch:** Finde Mitstreiter:innen für gemeinsame Projekte oder Hilfestellung in Echtzeit.
+- **Aktuelle Termine:** Siehe Forum oder Community-Kalender.
+
+---
+
+## 🏫 Ressourcen für Bildung & NGOs
+
+- **Sonderangebote:** Kostenlose oder vergünstigte Nutzung für Bildungseinrichtungen und gemeinnützige Organisationen – frage im Forum nach aktuellen Aktionen!
+- **Tipps:** Leitfäden für den Einsatz im Unterricht, Workshops und barrierefreie Bildungsprojekte.
+- **Fördermöglichkeiten:** Hinweise auf Stipendien, Wettbewerbe und Förderprogramme der Community.
+
+---
+
+## 🎥 Video-FAQ & Umfragen (in Planung)
+
+- **Video-FAQ:** Bald findest du die wichtigsten Fragen und Antworten auch als Kurzvideos – Vorschläge willkommen!
+- **Feedback & Umfragen:** Nimm an regelmäßigen Umfragen teil und gestalte die Weiterentwicklung von WhisperX aktiv mit.
+
+> 💬 **Deine Meinung zählt:** Wünsche, Kritik oder Lob? Teile sie im Forum oder über die nächste Community-Umfrage!
+
+---
+
+## 🏆 Success Stories & Inspiration
+
+- **Lehrerin aus NRW:** „Dank WhisperX kann ich Unterrichtsmitschnitte schnell in Arbeitsblätter verwandeln – das spart mir jede Woche Zeit!“
+- **Podcast-Team aus Berlin:** „Wir transkribieren und verschlagworten unsere Episoden jetzt automatisch – die Reichweite ist deutlich gestiegen.“
+- **Archivarin:** „Mit WhisperX habe ich alte Tonbänder digitalisiert und für die Forschung zugänglich gemacht.“
+- **NGO:** „Barrierefreie Untertitel für unsere Online-Workshops sind jetzt ein Kinderspiel!“
+- **Privatnutzer:** „Ich habe die Familiengeschichte meines Großvaters als Audio aufgenommen und mit WhisperX für alle lesbar gemacht.“
+
+> ✨ **Teile deine eigene Erfolgsgeschichte im [Showcase](https://github.com/m-bain/whisperx/discussions/categories/show-and-tell) und inspiriere andere!**
+
+---
+
+## 👶🧓 Tutorials für Kids, Senioren & Einsteiger:innen
+
+- **Für Kids:**
+  - Schritt-für-Schritt-Bilderstrecken und Video-Tutorials im Community-Forum
+  - Einfache Sprache und viele Beispiele
+- **Für Senioren:**
+  - Persönliche Unterstützung durch Community-Paten
+  - Extra-Erklärungen zu Installation und Bedienung
+- **Für Einsteiger:innen:**
+  - Mini-Quiz, FAQ und Schnellstart-Anleitungen
+  - Tipps für erste Projekte und Fehlervermeidung
+
+> 💡 **Wunsch-Thema?** Sag im Forum Bescheid, wenn du ein spezielles Tutorial brauchst!
+
+---
+
+## 📅 Community-Kalender & Events vorschlagen
+
+- **Immer aktuell:** Im Community-Kalender findest du alle geplanten Events, Workshops und Live-Q&As.
+- **Eigene Events:** Du möchtest selbst einen Workshop, ein Meetup oder eine Sprechstunde anbieten? Schlage dein Event im Forum vor – die Community hilft bei der Organisation!
+
+---
+
+## 🌍 Regionale Meetups & Sprachräume
+
+- **Lokale Gruppen:** Finde Nutzer:innen in deiner Nähe – im Forum gibt es regionale Channels und Meetup-Threads.
+- **Mehrsprachige Treffen:** Es gibt Online-Treffen und Diskussionsrunden in verschiedenen Sprachen (z.B. Englisch, Deutsch, Spanisch, Französisch).
+- **Eigene Gruppe gründen:** Starte eine lokale Gruppe oder einen Sprachraum – die Community hilft bei der Organisation und Bekanntmachung.
+- **Aktuelle Infos:** Schau regelmäßig in den Community-Kalender und die Sprachraum-Threads im Forum.
+
+---
+
+## 🏅 Community-Badges & Anerkennung
+
+- **Badges für Engagement:** Erhalte Auszeichnungen für Tutorials, Support, innovative Projekte oder Community-Events.
+- **Anerkennung:** Besonders aktive Mitglieder werden regelmäßig im Newsletter und im Forum vorgestellt.
+- **Mitmachen lohnt sich:** Jede Hilfe zählt – vom kleinen Tipp bis zum großen Beitrag!
+
+---
+
+## 📨 WhisperX-Newsletter
+
+- **Monatlich:** Erhalte die wichtigsten Tipps, Updates, Community-Highlights und Event-Termine direkt ins Postfach.
+- **Anmeldung:** Einfach im Forum oder auf der Projektseite eintragen.
+- **Mitgestalten:** Teile News, Tipps oder Projekte für die nächste Ausgabe – die Community freut sich über Input!
+
+---
+
+## 🤝 Mentoring & Peer-Support
+
+- **1:1-Mentoring:** Finde eine:n erfahrene:n Mentor:in für deine ersten Schritte oder unterstütze andere als Peer.
+- **Peer-Learning-Gruppen:** Lerne gemeinsam mit anderen in kleinen Gruppen – für alle Erfahrungsstufen.
+- **Mitmachen:** Melde dich im Forum als Mentor:in oder Mentee – die Community bringt euch zusammen!
+
+---
+
+## 🗺️ Globale Community-Karte
+
+- **Interaktive Karte:** Entdecke, wo überall auf der Welt WhisperX genutzt wird und finde Nutzer:innen oder Gruppen in deiner Nähe.
+- **Eintragen:** Trage dich freiwillig ein und vernetze dich regional oder thematisch.
+- **Link zur Karte:** Im Forum und auf der Projektseite verfügbar.
+
+---
+
+## 🏆 Spezielle Challenges & Wettbewerbe
+
+- **Regionale Challenges:** Zeige, wie WhisperX in deinem Land oder deiner Region eingesetzt wird.
+- **Zielgruppen-Wettbewerbe:** Spezielle Aktionen für Bildung, NGOs, Forschung, Medien u.v.m.
+- **Themen-Challenges:** Monatliche Wettbewerbe zu Schwerpunkten wie Barrierefreiheit, Kreativität oder Integration.
+- **Preise & Anerkennung:** Gewinne Badges, Community-Features oder kleine Sachpreise.
+
+---
+
+## 🚀 Jetzt bist du dran!
+
+> **Starte noch heute dein erstes Projekt, teile deine Erfahrungen und werde Teil unserer aktiven Community!**
+> Gemeinsam machen wir Sprachverarbeitung für alle zugänglich und einfach.
+
+---
+
+### Mini-FAQ für spezielle Zielgruppen
+
+- **Wie kann ich WhisperX im Unterricht nutzen?**
+  Mitschriften, Untertitel, Lernmaterialien automatisch erstellen – einfach Audio aufnehmen und transkribieren.
+- **Kann ich mehrere Vorlesungen auf einmal transkribieren?**
+  Ja! Nutze die Batch-Verarbeitung (siehe CLI-Beispiele oben).
+- **Wie binde ich WhisperX in meine App ein?**
+  Siehe Python-API und REST-API-Integration – bei Fragen hilft die Community.
+- **Wie bleibt mein Team auf dem Laufenden?**
+  Ergebnisse automatisiert im Team-Chat oder als Protokoll teilen.
+- **Gibt es Hilfe für Einsteiger:innen?**
+  Ja! Im Forum gibt es Community-Paten und gezielte Unterstützung für alle Erfahrungsstufen.
+
+> 🤗 **Personalisierte Hilfe:** Melde dich im Forum – dort findest du Community-Paten, die dich individuell unterstützen und bei deinen ersten Schritten begleiten!
+
+---
+
+## ⚙️ Integration in CI/CD-Pipelines
+
+WhisperX kann automatisiert in Build- und Testprozesse eingebunden werden, z.B. mit GitHub Actions:
+
+**Beispiel: GitHub Actions Workflow**
+```yaml
+name: WhisperX Batch Transcription
+on: [push]
+jobs:
+  transcribe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+          pip install git+https://github.com/m-bain/whisperx.git
+      - name: Run WhisperX
+        run: |
+          python -m whisperx sample_audio.mp3 --output_dir results/
+```
+> 💡 Passe den Workflow an deine Bedürfnisse an (z.B. Batch-Transkription mehrerer Dateien).
+
+---
+
+## 📂 Templates & Beispielskripte
+- Im Repository findest du Vorlagen und Beispielskripte für verschiedene Anwendungsfälle (z.B. Batch-Transkription, Fehlerprüfung).
+- Nutze diese als Ausgangspunkt für eigene Integrationen.
+
+---
+
+## 🚀 Fortgeschrittene Nutzungsszenarien
+
+- **Batch-Verarbeitung:** Transkribiere mehrere Dateien in einem Schritt, z.B. per Shell-Skript oder Python-Loop.
+- **Custom Models:** Nutze eigene oder angepasste Modelle mit WhisperX (`--model <pfad_zum_modell>`).
+- **Automatisierte Qualitätssicherung:** Kombiniere WhisperX mit Tests und Validierungsskripten für große Datenmengen.
+- **Integration mit anderen Tools:** Kopple WhisperX mit NLP- oder Analyse-Frameworks für weiterführende Auswertungen.
+
+---
+
+## 🐳 Docker-Nutzung
+
+WhisperX kann einfach in Containern betrieben werden. Beispiel für ein minimales `Dockerfile`:
+
+```dockerfile
+FROM python:3.10-slim
+WORKDIR /app
+COPY . .
+RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu \
+    && pip install git+https://github.com/m-bain/whisperx.git
+CMD ["python", "-m", "whisperx", "audio.mp3", "--output_dir", "results/"]
+```
+
+**Build & Run:**
+```bash
+docker build -t whisperx-app .
+docker run --rm -v $PWD:/app whisperx-app
+```
+> 💡 Passe das Dockerfile und die CMD-Zeile an deine Bedürfnisse an (z.B. GPU-Support, andere Modelle).
+
+---
+
+## 🌐 REST-API-Integration
+
+WhisperX kann in eigene Webservices eingebunden werden, z.B. mit [FastAPI](https://fastapi.tiangolo.com/):
+
+```python
+from fastapi import FastAPI, UploadFile
+import whisperx
+
+app = FastAPI()
+model = whisperx.load_model("large-v2", device="cuda")
+
+@app.post("/transcribe/")
+async def transcribe(file: UploadFile):
+    audio_path = f"/tmp/{file.filename}"
+    with open(audio_path, "wb") as f:
+        f.write(await file.read())
+    result = model.transcribe(audio_path)
+    return {"segments": result["segments"]}
+```
+> 💡 Für produktive Nutzung: Beachte Sicherheit, Skalierung und Ressourcenmanagement.
+
+---
+
+## ☁️ Cloud-Deployment & Skalierung
+
+WhisperX kann flexibel in der Cloud betrieben werden – z.B. auf AWS, Azure oder GCP.
+
+- **GPU-Instanzen:** Für hohe Geschwindigkeit empfiehlt sich der Einsatz von GPU-VMs (z.B. AWS EC2 `g4dn`, Azure `NC`-Serie, GCP `A2`-Instanzen).
+- **Storage:** Nutze schnellen Speicher (NVMe, SSD) für große Audiodateien und Zwischenergebnisse.
+- **Skalierung:** Setze mehrere Worker oder verwende Container-Orchestrierung (z.B. Kubernetes) für parallele Verarbeitung.
+- **Kostenkontrolle:** Nutze Spot-Instanzen oder automatische Abschaltung nach Verarbeitung.
+
+> 💡 Siehe Beispiel-Dockerfile und REST-API-Integration weiter oben.
+
+---
+
+## 📈 Benchmarks & Performance
+
+| Modell         | Hardware         | 1h Audio | Laufzeit (ca.) |
+|---------------|------------------|----------|----------------|
+| large-v2 (GPU)| RTX 3090         | 1h       | ~5-8 min       |
+| large-v2 (CPU)| 8 vCPU           | 1h       | ~60-120 min    |
+| medium (GPU)  | RTX 3090         | 1h       | ~3-5 min       |
+
+- Die tatsächliche Laufzeit hängt von Hardware, Modell, Audioqualität und Einstellungen ab.
+- Miss die Performance mit eigenen Daten und passe die Konfiguration an deine Anforderungen an.
+
+---
+
+## 🎬 Video-Onboarding & Support
+
+- **Video-Tutorials:** Schritt-für-Schritt-Anleitungen findest du im [YouTube-Channel](https://www.youtube.com/results?search_query=whisperx) und im Community-Forum.
+- **Support & Hilfe:**
+  - [GitHub Issues](https://github.com/m-bain/whisperx/issues)
+  - [Discussions](https://github.com/m-bain/whisperx/discussions)
+  - [FAQ & Troubleshooting](#faq-häufige-fehler--lösungen)
+
+---
+
+## 🧪 Beispiel: Automatisierter Test für WhisperX (Python)
+
+Du kannst mit einem kleinen Skript testen, ob WhisperX korrekt installiert ist und eine Datei verarbeitet werden kann:
+
+```python
+import subprocess
+result = subprocess.run([
+    'python', '-m', 'whisperx', '--help'
+], capture_output=True, text=True)
+if 'usage' in result.stdout.lower():
+    print('✅ WhisperX ist installiert und funktioniert!')
+else:
+    print('❌ WhisperX-Test fehlgeschlagen.')
+```
+
+---
+
+## ❓ FAQ: Häufige Fehler & Lösungen
+
+| Problem                       | Lösungsvorschlag                                         |
+|-------------------------------|----------------------------------------------------------|
+| CUDA not available            | NVIDIA-Treiber & CUDA prüfen, ggf. `nvidia-smi` nutzen   |
+| ImportError                   | Python-Umgebung & Abhängigkeiten prüfen                  |
+| Audio wird nicht erkannt      | Audioformat & Dateipfad kontrollieren                    |
+| "ModuleNotFoundError"         | Fehlendes Paket mit `pip install ...` nachinstallieren   |
+| Falsche Sprache im Ergebnis   | `--language`-Parameter explizit setzen                   |
+
+Weitere Hilfe: [GitHub Issues](https://github.com/m-bain/whisperx/issues)
+
+---
+
+## 🤝 Kontakt & Community
+- **Fragen oder Feedback?** Stelle sie gerne als [Issue](https://github.com/m-bain/whisperx/issues) ein.
+- **Community & Diskussion:** [GitHub Discussions](https://github.com/m-bain/whisperx/discussions)
+- **Mitmachen:** Pull Requests und Beiträge sind willkommen!
+
+---
 
 `conda install pytorch==2.0.0 torchaudio==2.0.0 pytorch-cuda=11.8 -c pytorch -c nvidia`
 

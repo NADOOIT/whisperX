@@ -10,13 +10,267 @@ class SpeakerManagementWindow(tk.Toplevel):
     def __init__(self, parent):
         super().__init__(parent)
         self.title("Speaker Management")
-        self.geometry("600x400")
-        
+        self.geometry("700x450")
+
         # Initialize adaptive processor
         self.processor = AdaptiveProcessor()
-        
-        self._create_widgets()
+
+        # Notebook mit zwei Tabs
+        self.notebook = ttk.Notebook(self)
+        self.notebook.pack(fill=tk.BOTH, expand=True)
+
+        # Tab 1: Speaker Profiles (bestehende GUI)
+        self.tab_profiles = ttk.Frame(self.notebook)
+        self.notebook.add(self.tab_profiles, text="Speaker Profiles")
+        self._create_profile_widgets(self.tab_profiles)
         self._load_profiles()
+
+        # Tab 2: Speaker Training (neu)
+        self.tab_training = ttk.Frame(self.notebook)
+        self.notebook.add(self.tab_training, text="Speaker Training")
+        self._create_training_widgets(self.tab_training)
+
+    def _create_profile_widgets(self, parent):
+        """Create the widgets for the profiles tab."""
+        # Profile List
+        list_frame = ttk.LabelFrame(parent, text="Speaker Profiles")
+        list_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        self.profile_list = ttk.Treeview(
+            list_frame,
+            columns=("ID", "Language", "Samples"),
+            show="headings"
+        )
+        self.profile_list.heading("ID", text="Speaker ID")
+        self.profile_list.heading("Language", text="Language")
+        self.profile_list.heading("Samples", text="Samples")
+        self.profile_list.pack(fill=tk.BOTH, expand=True)
+
+        # Buttons Frame
+        btn_frame = ttk.Frame(parent)
+        btn_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=5, pady=5)
+
+        ttk.Button(
+            btn_frame,
+            text="New Profile",
+            command=self._create_profile
+        ).pack(fill=tk.X, pady=2)
+
+        ttk.Button(
+            btn_frame,
+            text="Add Sample",
+            command=self._add_sample
+        ).pack(fill=tk.X, pady=2)
+
+        ttk.Button(
+            btn_frame,
+            text="Delete Profile",
+            command=self._delete_profile
+        ).pack(fill=tk.X, pady=2)
+
+        # Settings Frame
+        settings_frame = ttk.LabelFrame(btn_frame, text="Settings")
+        settings_frame.pack(fill=tk.X, pady=5)
+        self.adapt_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(
+            settings_frame,
+            text="Enable Adaptation",
+            variable=self.adapt_var
+        ).pack(fill=tk.X)
+        self.enhance_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(
+            settings_frame,
+            text="Enable Enhancement",
+            variable=self.enhance_var
+        ).pack(fill=tk.X)
+
+    def _create_training_widgets(self, parent):
+        """Create the widgets for the speaker training tab."""
+        import sys
+        # Profil-Auswahl
+        profile_frame = ttk.LabelFrame(parent, text="Select Speaker Profile")
+        profile_frame.pack(fill=tk.X, padx=5, pady=5)
+        self.training_profile_var = tk.StringVar()
+        self.training_profile_combo = ttk.Combobox(profile_frame, textvariable=self.training_profile_var, state="readonly")
+        self.training_profile_combo.pack(fill=tk.X, padx=5, pady=5)
+        self._refresh_training_profiles()
+
+        # Upload Audio mit Drag & Drop
+        upload_frame = ttk.LabelFrame(parent, text="Upload Training Audio")
+        upload_frame.pack(fill=tk.X, padx=5, pady=5)
+        self.audio_path_var = tk.StringVar()
+        self.audio_entry = ttk.Entry(upload_frame, textvariable=self.audio_path_var, state="readonly")
+        self.audio_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5, pady=5)
+        ttk.Button(upload_frame, text="Browse", command=self._browse_audio_training).pack(side=tk.LEFT, padx=5)
+        # Drag & Drop für Audio
+        try:
+            import tkdnd
+            self.tk.call('package', 'require', 'tkdnd')
+            self.audio_entry.drop_target_register('DND_Files')
+            self.audio_entry.dnd_bind('<<Drop>>', self._on_audio_drop)
+        except Exception:
+            pass  # Fällt bei fehlender tkdnd elegant zurück
+
+        # Optional Transkript mit Drag & Drop
+        transcript_frame = ttk.LabelFrame(parent, text="Optional: Upload Transcript")
+        transcript_frame.pack(fill=tk.X, padx=5, pady=5)
+        self.transcript_path_var = tk.StringVar()
+        self.transcript_entry = ttk.Entry(transcript_frame, textvariable=self.transcript_path_var, state="readonly")
+        self.transcript_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5, pady=5)
+        ttk.Button(transcript_frame, text="Browse", command=self._browse_transcript_training).pack(side=tk.LEFT, padx=5)
+        try:
+            import tkdnd
+            self.tk.call('package', 'require', 'tkdnd')
+            self.transcript_entry.drop_target_register('DND_Files')
+            self.transcript_entry.dnd_bind('<<Drop>>', self._on_transcript_drop)
+        except Exception:
+            pass
+
+        # Trainings-Button
+        train_btn = ttk.Button(parent, text="Start Training", command=self._start_training)
+        train_btn.pack(fill=tk.X, padx=10, pady=10)
+
+        # Fortschrittsanzeige
+        progress_frame = ttk.Frame(parent)
+        progress_frame.pack(fill=tk.X, padx=10, pady=2)
+        self.progress_var = tk.DoubleVar(value=0.0)
+        self.progressbar = ttk.Progressbar(progress_frame, variable=self.progress_var, maximum=100)
+        self.progressbar.pack(fill=tk.X, side=tk.LEFT, expand=True)
+        self.training_status_var = tk.StringVar(value="Status: Ready")
+        self.training_status_label = ttk.Label(progress_frame, textvariable=self.training_status_var)
+        self.training_status_label.pack(side=tk.LEFT, padx=10)
+
+        # Adapter-Management
+        adapter_frame = ttk.LabelFrame(parent, text="Adapter Management")
+        adapter_frame.pack(fill=tk.X, padx=5, pady=5)
+        ttk.Button(adapter_frame, text="Delete Adapter", command=self._delete_adapter).pack(side=tk.LEFT, padx=5, pady=5)
+        ttk.Button(adapter_frame, text="Retrain Adapter", command=self._retrain_adapter).pack(side=tk.LEFT, padx=5, pady=5)
+        ttk.Button(adapter_frame, text="Show Adapter Status", command=self._show_adapter_status).pack(side=tk.LEFT, padx=5, pady=5)
+
+    def _on_audio_drop(self, event):
+        files = event.data.strip().split()
+        if files:
+            self.audio_path_var.set(files[0])
+
+    def _on_transcript_drop(self, event):
+        files = event.data.strip().split()
+        if files:
+            self.transcript_path_var.set(files[0])
+
+    def _start_training(self):
+        import threading, time
+        profile_id = self.training_profile_var.get()
+        audio_path = self.audio_path_var.get()
+        transcript_path = self.transcript_path_var.get()
+        if not profile_id or not audio_path:
+            self.training_status_var.set("Status: Please select profile and audio file.")
+            return
+        def run_training():
+            try:
+                self.progress_var.set(10)
+                self.training_status_var.set("Status: Adding sample...")
+                self.processor.save_transcription_feedback(audio_path=audio_path, transcription="", speaker_id=profile_id)
+                self.progress_var.set(30)
+                self.training_status_var.set("Status: Training...")
+                from whisperx.adaptive_training import SpeakerModelTrainer
+                profile = self.processor.voice_profiles[profile_id]
+                trainer = SpeakerModelTrainer(model_dir=self.processor.profiles_dir)
+                # TODO: Trainingsdaten sammeln, optional Transkript übergeben
+                adapter_path = trainer.train(profile, [audio_path])
+                self.progress_var.set(100)
+                self.training_status_var.set(f"Status: Training complete. Adapter saved at {adapter_path}")
+                self.audio_path_var.set("")
+                self.transcript_path_var.set("")
+                self._refresh_training_profiles()
+                time.sleep(0.5)
+                self.progress_var.set(0)
+            except Exception as e:
+                self.training_status_var.set(f"Status: Training failed: {str(e)}")
+                self.progress_var.set(0)
+        threading.Thread(target=run_training, daemon=True).start()
+
+    def _delete_adapter(self):
+        import os
+        profile_id = self.training_profile_var.get()
+        if not profile_id:
+            self.training_status_var.set("Status: Please select profile.")
+            return
+        try:
+            adapter_path = os.path.join(self.processor.profiles_dir, f"{profile_id}_adapter.pt")
+            if os.path.exists(adapter_path):
+                os.remove(adapter_path)
+                self.training_status_var.set(f"Status: Adapter deleted for {profile_id}.")
+            else:
+                self.training_status_var.set("Status: No adapter found to delete.")
+        except Exception as e:
+            self.training_status_var.set(f"Status: Delete failed: {str(e)}")
+
+    def _retrain_adapter(self):
+        # Ruft einfach _start_training erneut auf (kann angepasst werden)
+        self._start_training()
+
+    def _show_adapter_status(self):
+        import os
+        profile_id = self.training_profile_var.get()
+        if not profile_id:
+            self.training_status_var.set("Status: Please select profile.")
+            return
+        adapter_path = os.path.join(self.processor.profiles_dir, f"{profile_id}_adapter.pt")
+        if os.path.exists(adapter_path):
+            self.training_status_var.set(f"Status: Adapter exists at {adapter_path}")
+        else:
+            self.training_status_var.set("Status: No adapter found.")
+
+    def _refresh_training_profiles(self):
+        """Refresh the profile list for training tab."""
+        profiles = list(self.processor.voice_profiles.keys())
+        self.training_profile_combo['values'] = profiles
+        if profiles:
+            self.training_profile_combo.current(0)
+
+    def _browse_audio_training(self):
+        path = filedialog.askopenfilename(title="Select Training Audio", filetypes=[("Audio Files", "*.mp3 *.wav *.m4a"), ("All Files", "*.*")])
+        if path:
+            self.audio_path_var.set(path)
+
+    def _browse_transcript_training(self):
+        path = filedialog.askopenfilename(title="Select Transcript", filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")])
+        if path:
+            self.transcript_path_var.set(path)
+
+    def _start_training(self):
+        profile_id = self.training_profile_var.get()
+        audio_path = self.audio_path_var.get()
+        transcript_path = self.transcript_path_var.get()
+        if not profile_id or not audio_path:
+            self.training_status_var.set("Status: Please select profile and audio file.")
+            return
+        try:
+            # TODO: Optional Transkript nutzen
+            profile = self.processor.voice_profiles[profile_id]
+            # Minimal: Sample hinzufügen
+            self.processor.save_transcription_feedback(audio_path=audio_path, transcription="", speaker_id=profile_id)
+            # Training auslösen (Dummy/Platzhalter)
+            from whisperx.adaptive_training import SpeakerModelTrainer
+            trainer = SpeakerModelTrainer(model_dir=self.processor.profiles_dir)
+            # TODO: Trainingsdaten sammeln, optional Transkript übergeben
+            adapter_path = trainer.train(profile, [audio_path])
+            self.training_status_var.set(f"Status: Training complete. Adapter saved at {adapter_path}")
+            self._refresh_training_profiles()
+        except Exception as e:
+            self.training_status_var.set(f"Status: Training failed: {str(e)}")
+
+    def _delete_adapter(self):
+        # TODO: Adapter für gewähltes Profil löschen
+        self.training_status_var.set("Status: Delete Adapter (not yet implemented)")
+
+    def _retrain_adapter(self):
+        # TODO: Adapter für gewähltes Profil neu trainieren
+        self.training_status_var.set("Status: Retrain Adapter (not yet implemented)")
+
+    def _show_adapter_status(self):
+        # TODO: Adapter-Status anzeigen
+        self.training_status_var.set("Status: Show Adapter Status (not yet implemented)")
 
     def _create_widgets(self):
         """Create the window widgets."""

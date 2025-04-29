@@ -7,7 +7,7 @@ import numpy as np
 from pathlib import Path
 from whisperx.pipeline import WhisperXPipeline
 from whisperx.audio import SAMPLE_RATE, AudioProcessor
-from whisperx.utils import get_device
+from whisperx.utils.device import get_device_from_name
 
 # Skip all tests if Metal is not available
 metal_available = hasattr(torch.backends, 'mps') and torch.backends.mps.is_available()

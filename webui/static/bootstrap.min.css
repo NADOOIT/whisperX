@@ -1,0 +1,99 @@
+body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #f7fafe;
+    color: #222;
+    font-size: 1.15rem;
+    line-height: 1.7;
+}
+.container {
+    max-width: 900px;
+    margin: 2em auto;
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 6px 32px rgba(60,80,120,0.08);
+    padding: 2.5em 2em;
+}
+h1, h2 {
+    font-weight: 700;
+    letter-spacing: -1px;
+    margin-bottom: 1em;
+}
+.table {
+    background: #fff;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(60,80,120,0.05);
+}
+.table th, .table td {
+    padding: 1em 0.7em;
+    vertical-align: middle;
+}
+.form-control {
+    border-radius: 10px;
+    padding: 0.8em 1em;
+    font-size: 1em;
+    border: 1px solid #d2d6e0;
+    background: #f9fbfd;
+}
+.btn {
+    font-size: 1.1em;
+    padding: 0.7em 1.5em;
+    border-radius: 10px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(13,110,253,0.07);
+    transition: background 0.15s, color 0.15s;
+}
+.btn-primary {
+    background: #0d6efd;
+    border: none;
+}
+.btn-secondary {
+    background: #6c757d;
+    border: none;
+}
+.btn-success {
+    background: #198754;
+    border: none;
+}
+.btn-danger {
+    background: #dc3545;
+    border: none;
+}
+.btn-info {
+    background: #0dcaf0;
+    border: none;
+    color: #fff;
+}
+.btn:hover, .btn:focus {
+    filter: brightness(0.97);
+    opacity: 0.94;
+}
+.alert {
+    border-radius: 10px;
+    font-size: 1em;
+}
+.progress {
+    background: #e9ecef;
+    border-radius: 10px;
+    height: 28px;
+}
+.progress-bar {
+    background: linear-gradient(90deg,#0d6efd 60%,#198754 100%);
+    border-radius: 10px;
+    font-size: 1em;
+}
+.badge {
+    font-size: 1em;
+    border-radius: 8px;
+    margin: 0 0.4em 0.4em 0;
+    padding: 0.5em 1em;
+    background: #e3e6f0;
+    color: #2d3a4d;
+}
+@media (max-width: 700px) {
+    .container { padding: 1em 0.5em; }
+    .table th, .table td { padding: 0.6em 0.3em; }
+    .btn { font-size: 1em; padding: 0.6em 1em; }
+    h1 { font-size: 1.5em; }
+}
+
